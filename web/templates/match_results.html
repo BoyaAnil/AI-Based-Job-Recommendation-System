@@ -1,0 +1,13 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <h2>Match Results</h2>
+    <p><strong>Job:</strong> {{ match.job.title }} at {{ match.job.company }}</p>
+    <p><strong>Score:</strong> {{ match.score }}</p>
+    <p><strong>Matched Skills:</strong> {{ match.matched_skills|join:", " }}</p>
+    <p><strong>Missing Skills:</strong> {{ match.missing_skills|join:", " }}</p>
+    <p><strong>Created:</strong> {{ match.created_at }}</p>
+    <a class="btn secondary" href="{% url 'job_detail' match.job.id %}">Back to Job</a>
+</div>
+{% endblock %}

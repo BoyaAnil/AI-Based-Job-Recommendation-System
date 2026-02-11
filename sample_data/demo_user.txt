@@ -1,0 +1,3 @@
+﻿Demo Users
+- demo / demo1234 (regular user)
+- admin / admin1234 (staff/superuser)

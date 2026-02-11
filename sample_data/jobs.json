@@ -1,0 +1,213 @@
+﻿[
+  {
+    "title": "Backend Engineer",
+    "company": "Acme Tech",
+    "location": "Remote",
+    "level": "Mid",
+    "salary_range": "100k-120k",
+    "description": "Build APIs and services using Django and PostgreSQL.",
+    "required_skills": ["python", "django", "postgresql", "rest", "git"],
+    "apply_link": "https://acmetech.com/careers/backend-engineer"
+  },
+  {
+    "title": "Data Analyst",
+    "company": "Insight Labs",
+    "location": "New York, NY",
+    "level": "Junior",
+    "salary_range": "70k-90k",
+    "description": "Analyze datasets, create dashboards, and automate reporting.",
+    "required_skills": ["sql", "python", "pandas", "excel", "tableau"],
+    "apply_link": "https://insightlabs.com/careers/data-analyst"
+  },
+  {
+    "title": "Machine Learning Engineer",
+    "company": "Nova AI",
+    "location": "San Francisco, CA",
+    "level": "Senior",
+    "salary_range": "140k-170k",
+    "description": "Deploy ML models and build training pipelines.",
+    "required_skills": ["python", "ml", "scikit-learn", "tensorflow", "docker"],
+    "apply_link": "https://novaai.com/careers/ml-engineer"
+  },
+  {
+    "title": "Full Stack Developer",
+    "company": "BrightApps",
+    "location": "Austin, TX",
+    "level": "Mid",
+    "salary_range": "110k-130k",
+    "description": "Build web apps with Django and vanilla JavaScript.",
+    "required_skills": ["python", "django", "javascript", "html", "css"],
+    "apply_link": "https://brightapps.com/careers/fullstack-dev"
+  },
+  {
+    "title": "DevOps Engineer",
+    "company": "CloudGate",
+    "location": "Remote",
+    "level": "Senior",
+    "salary_range": "130k-160k",
+    "description": "Manage CI/CD, Kubernetes, and cloud infrastructure.",
+    "required_skills": ["docker", "kubernetes", "aws", "linux", "bash"],
+    "apply_link": "https://cloudgate.io/careers/devops-engineer"
+  },
+  {
+    "title": "Data Scientist",
+    "company": "Quantify",
+    "location": "Boston, MA",
+    "level": "Mid",
+    "salary_range": "120k-150k",
+    "description": "Build predictive models and deliver business insights.",
+    "required_skills": ["python", "data science", "pandas", "numpy", "ml"],
+    "apply_link": "https://quantify.io/careers/data-scientist"
+  },
+  {
+    "title": "Frontend Developer",
+    "company": "PixelWorks",
+    "location": "Remote",
+    "level": "Mid",
+    "salary_range": "95k-115k",
+    "description": "Develop responsive interfaces with HTML, CSS, and JavaScript.",
+    "required_skills": ["html", "css", "javascript", "git"],
+    "apply_link": "https://pixelworks.io/careers/frontend-dev"
+  },
+  {
+    "title": "Product Data Analyst",
+    "company": "Signal",
+    "location": "Chicago, IL",
+    "level": "Junior",
+    "salary_range": "75k-95k",
+    "description": "Own product metrics and build weekly dashboards.",
+    "required_skills": ["sql", "excel", "power bi", "data analysis"],
+    "apply_link": "https://signal.com/careers/data-analyst"
+  },
+  {
+    "title": "NLP Engineer",
+    "company": "TextMind",
+    "location": "Remote",
+    "level": "Senior",
+    "salary_range": "150k-180k",
+    "description": "Build NLP pipelines and deploy language models.",
+    "required_skills": ["python", "nlp", "pytorch", "scikit-learn"],
+    "apply_link": "https://textmind.ai/careers/nlp-engineer"
+  },
+  {
+    "title": "Analytics Engineer",
+    "company": "MetricWorks",
+    "location": "Denver, CO",
+    "level": "Mid",
+    "salary_range": "105k-125k",
+    "description": "Design data models and maintain ETL workflows.",
+    "required_skills": ["sql", "etl", "airflow", "python"],
+    "apply_link": "https://metricworks.io/careers/analytics-eng"
+  },
+  {
+    "title": "QA Engineer",
+    "company": "Reliant Systems",
+    "location": "Remote",
+    "level": "Mid",
+    "salary_range": "90k-110k",
+    "description": "Write automated tests and improve test coverage.",
+    "required_skills": ["pytest", "python", "unit testing"],
+    "apply_link": "https://reliants.com/careers/qa-engineer"
+  },
+  {
+    "title": "Cloud Engineer",
+    "company": "SkyScale",
+    "location": "Seattle, WA",
+    "level": "Senior",
+    "salary_range": "135k-165k",
+    "description": "Manage cloud environments and ensure reliability.",
+    "required_skills": ["aws", "docker", "kubernetes", "linux"],
+    "apply_link": "https://skyscale.io/careers/cloud-engineer"
+  },
+  {
+    "title": "Software Engineer Intern",
+    "company": "Launchpad",
+    "location": "Remote",
+    "level": "Intern",
+    "salary_range": "25/hr",
+    "description": "Support feature development and documentation.",
+    "required_skills": ["python", "git", "html"],
+    "apply_link": "https://launchpad.dev/careers/intern"
+  },
+  {
+    "title": "Database Administrator",
+    "company": "DataCore",
+    "location": "Atlanta, GA",
+    "level": "Senior",
+    "salary_range": "120k-140k",
+    "description": "Maintain MySQL and PostgreSQL clusters.",
+    "required_skills": ["mysql", "postgresql", "linux", "sql"],
+    "apply_link": "https://datacore.io/careers/dba"
+  },
+  {
+    "title": "Business Intelligence Developer",
+    "company": "InsightForge",
+    "location": "Remote",
+    "level": "Mid",
+    "salary_range": "100k-120k",
+    "description": "Build dashboards and optimize data pipelines.",
+    "required_skills": ["sql", "power bi", "tableau", "data analysis"],
+    "apply_link": "https://insightforge.io/careers/bi-dev"
+  }
+  ,
+  {
+    "title": "Backend Engineer - Bengaluru",
+    "company": "IndiTech",
+    "location": "Bengaluru, KA",
+    "level": "Mid",
+    "salary_range": "18L-24L",
+    "description": "Develop scalable APIs and backend services.",
+    "required_skills": ["python", "django", "rest", "postgresql"],
+    "apply_link": "https://inditech.in/careers/backend-bengaluru"
+  },
+  {
+    "title": "Frontend Developer - Mumbai",
+    "company": "WebWave",
+    "location": "Mumbai, MH",
+    "level": "Mid",
+    "salary_range": "12L-18L",
+    "description": "Build responsive UIs with React and modern CSS.",
+    "required_skills": ["javascript", "react", "html", "css"],
+    "apply_link": "https://webwave.in/careers/frontend-mumbai"
+  },
+  {
+    "title": "Data Engineer - Pune",
+    "company": "DataPulse",
+    "location": "Pune, MH",
+    "level": "Mid",
+    "salary_range": "15L-22L",
+    "description": "Build ETL pipelines and maintain data warehouses.",
+    "required_skills": ["sql", "python", "airflow", "etl"],
+    "apply_link": "https://datapulse.ai/careers/data-engineer-pune"
+  },
+  {
+    "title": "Machine Learning Engineer - Hyderabad",
+    "company": "NeuroTech",
+    "location": "Hyderabad, TG",
+    "level": "Senior",
+    "salary_range": "25L-35L",
+    "description": "Design and deploy ML models for scale.",
+    "required_skills": ["python", "ml", "pytorch", "tensorflow"],
+    "apply_link": "https://neurotech.ai/careers/ml-hyderabad"
+  },
+  {
+    "title": "NLP Engineer - Chennai",
+    "company": "LangWorks",
+    "location": "Chennai, TN",
+    "level": "Mid",
+    "salary_range": "16L-22L",
+    "description": "Build NLP pipelines and text-processing systems.",
+    "required_skills": ["nlp", "python", "pytorch", "spacy"],
+    "apply_link": "https://langworks.ai/careers/nlp-chennai"
+  },
+  {
+    "title": "Frontend - New Delhi",
+    "company": "CapitalApps",
+    "location": "New Delhi, DL",
+    "level": "Junior",
+    "salary_range": "8L-12L",
+    "description": "Work on web interfaces for enterprise products.",
+    "required_skills": ["javascript", "html", "css", "git"],
+    "apply_link": "https://capitalapps.in/careers/frontend-delhi"
+  }
+]

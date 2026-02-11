@@ -1,0 +1,463 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<div class="profile-container">
+    <h2>My Profile</h2>
+    
+    <!-- Profile Header with Photo -->
+    <div class="card profile-header">
+        <div class="profile-photo-section">
+            {% if user_profile.profile_photo %}
+                <img src="{{ user_profile.profile_photo.url }}" alt="{{ user.username }}" class="profile-photo">
+            {% else %}
+                <div class="profile-photo-placeholder">
+                    <span>📷</span>
+                </div>
+            {% endif %}
+        </div>
+        <div class="profile-info-section">
+            <h3>{{ user.first_name }} {{ user.last_name }}</h3>
+            {% if user.first_name == '' and user.last_name == '' %}
+                <p class="text-muted">{{ user.username }}</p>
+            {% endif %}
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            {% if user_profile.phone %}
+                <p><strong>Phone:</strong> {{ user_profile.phone }}</p>
+            {% endif %}
+            {% if user_profile.location %}
+                <p><strong>Location:</strong> {{ user_profile.location }}</p>
+            {% endif %}
+            <div class="profile-links mt-2">
+                {% if user_profile.linkedin_url %}
+                    <a href="{{ user_profile.linkedin_url }}" target="_blank" class="btn secondary small">LinkedIn</a>
+                {% endif %}
+                {% if user_profile.github_url %}
+                    <a href="{{ user_profile.github_url }}" target="_blank" class="btn secondary small">GitHub</a>
+                {% endif %}
+                {% if user_profile.website %}
+                    <a href="{{ user_profile.website }}" target="_blank" class="btn secondary small">Website</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h4>{{ resumes.count }}</h4>
+            <p>Resume{{ resumes.count|pluralize }}</p>
+        </div>
+        <div class="stat-card">
+            <h4>{{ saved_count }}</h4>
+            <p>Saved Job{{ saved_count|pluralize }}</p>
+        </div>
+        {% if user_profile.updated_at %}
+            <div class="stat-card">
+                <h4>Updated</h4>
+                <p>{{ user_profile.updated_at|date:"M d, Y" }}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Tabs for different sections -->
+    <div class="profile-tabs">
+        <button class="tab-btn active" data-tab="edit-profile">Edit Profile</button>
+        <button class="tab-btn" data-tab="change-password">Change Password</button>
+        <button class="tab-btn" data-tab="resumes">My Resumes</button>
+        <button class="tab-btn" data-tab="saved-jobs">Saved Jobs</button>
+    </div>
+
+    <!-- Edit Profile Tab -->
+    <div id="edit-profile" class="tab-content active">
+        <div class="card">
+            <h3>Update Your Profile</h3>
+            <form method="post" enctype="multipart/form-data" class="form">
+                {% csrf_token %}
+                <input type="hidden" name="update_profile" value="1">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ profile_form.first_name.id_for_label }}">First Name</label>
+                        {{ profile_form.first_name }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ profile_form.last_name.id_for_label }}">Last Name</label>
+                        {{ profile_form.last_name }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ profile_form.email.id_for_label }}">Email *</label>
+                    {{ profile_form.email }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ profile_form.phone.id_for_label }}">Phone</label>
+                    {{ profile_form.phone }}
+                    <small>{{ profile_form.phone.help_text }}</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ profile_form.location.id_for_label }}">Location</label>
+                    {{ profile_form.location }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ profile_form.profile_photo.id_for_label }}">Profile Photo</label>
+                    {{ profile_form.profile_photo }}
+                    <small>Upload a profile picture (JPG, PNG, etc.)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ profile_form.bio.id_for_label }}">Bio</label>
+                    {{ profile_form.bio }}
+                    <small>{{ profile_form.bio.help_text }}</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ profile_form.linkedin_url.id_for_label }}">LinkedIn Profile</label>
+                        {{ profile_form.linkedin_url }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ profile_form.github_url.id_for_label }}">GitHub Profile</label>
+                        {{ profile_form.github_url }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ profile_form.website.id_for_label }}">Personal Website</label>
+                    {{ profile_form.website }}
+                </div>
+
+                <button type="submit" class="btn primary">Update Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change Password Tab -->
+    <div id="change-password" class="tab-content">
+        <div class="card">
+            <h3>Change Your Password</h3>
+            <form method="post" class="form">
+                {% csrf_token %}
+                <input type="hidden" name="change_password" value="1">
+                
+                <div class="form-group">
+                    <label for="{{ password_form.old_password.id_for_label }}">{{ password_form.old_password.label }}</label>
+                    {{ password_form.old_password }}
+                    {% if password_form.old_password.errors %}
+                        <span class="form-error">{{ password_form.old_password.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ password_form.new_password1.id_for_label }}">{{ password_form.new_password1.label }}</label>
+                    {{ password_form.new_password1 }}
+                    {% if password_form.new_password1.errors %}
+                        <span class="form-error">{{ password_form.new_password1.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ password_form.new_password2.id_for_label }}">{{ password_form.new_password2.label }}</label>
+                    {{ password_form.new_password2 }}
+                    {% if password_form.new_password2.errors %}
+                        <span class="form-error">{{ password_form.new_password2.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                {% if password_form.non_field_errors %}
+                    <div class="form-errors">
+                        {% for error in password_form.non_field_errors %}
+                            <span class="form-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <button type="submit" class="btn primary">Change Password</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- My Resumes Tab -->
+    <div id="resumes" class="tab-content">
+        <div class="card">
+            <h3>Your Resumes</h3>
+            {% if resumes %}
+                <div class="grid">
+                    {% for resume in resumes %}
+                        <div class="card resume-card">
+                            <p><strong>📄 Resume {{ forloop.counter }}</strong></p>
+                            <p><small>Uploaded: {{ resume.uploaded_at|date:"M d, Y H:i" }}</small></p>
+                            {% if resume.raw_text %}
+                                <p><small>✓ Parsed</small></p>
+                            {% else %}
+                                <p><small>⏳ Pending parse</small></p>
+                            {% endif %}
+                            <a class="btn secondary" href="{% url 'resume_detail' resume.id %}">View Details</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No resumes uploaded yet.</p>
+                <a class="btn primary" href="{% url 'resume_upload' %}">Upload Your First Resume</a>
+            {% endif %}
+            <a class="btn secondary mt-2" href="{% url 'resume_upload' %}">Upload New Resume</a>
+        </div>
+    </div>
+
+    <!-- Saved Jobs Tab -->
+    <div id="saved-jobs" class="tab-content">
+        <div class="card">
+            <h3>Your Saved Jobs</h3>
+            {% if saved_count > 0 %}
+                <p>You have saved <strong>{{ saved_count }}</strong> job{{ saved_count|pluralize }}.</p>
+                <a class="btn primary" href="{% url 'saved_jobs' %}">View Saved Jobs</a>
+            {% else %}
+                <p class="text-muted">You haven't saved any jobs yet.</p>
+                <a class="btn primary" href="{% url 'job_list' %}">Browse Jobs</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .profile-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .profile-header {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 30px;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .profile-photo-section {
+        display: flex;
+        justify-content: center;
+    }
+
+    .profile-photo {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #ddd;
+    }
+
+    .profile-photo-placeholder {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 60px;
+        color: white;
+    }
+
+    .profile-info-section h3 {
+        margin: 0 0 10px 0;
+        font-size: 28px;
+    }
+
+    .profile-info-section p {
+        margin: 8px 0;
+    }
+
+    .profile-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn.small {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .stat-card h4 {
+        margin: 0;
+        font-size: 32px;
+    }
+
+    .stat-card p {
+        margin: 5px 0 0 0;
+        opacity: 0.9;
+    }
+
+    .profile-tabs {
+        display: flex;
+        gap: 10px;
+        border-bottom: 2px solid #eee;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        padding: 10px 20px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        color: #666;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+    }
+
+    .tab-btn:hover {
+        color: #667eea;
+    }
+
+    .tab-btn.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="url"],
+    .form-group input[type="password"],
+    .form-group input[type="file"],
+    .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .form-group textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-group small {
+        display: block;
+        margin-top: 5px;
+        color: #666;
+        font-size: 12px;
+    }
+
+    .form-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 5px;
+    }
+
+    .form-errors {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .resume-card {
+        text-align: center;
+    }
+
+    .text-muted {
+        color: #666;
+    }
+
+    @media (max-width: 768px) {
+        .profile-header {
+            grid-template-columns: 1fr;
+            text-align: center;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .profile-tabs {
+            flex-direction: column;
+            border-bottom: none;
+        }
+
+        .tab-btn {
+            border-bottom: none;
+            text-align: left;
+            padding: 10px;
+            background: #f5f5f5;
+            margin-bottom: 5px;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+    }
+</style>
+
+<script>
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            this.classList.add('active');
+        });
+    });
+</script>
+{% endblock %}

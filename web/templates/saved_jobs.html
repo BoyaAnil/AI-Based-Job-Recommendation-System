@@ -1,0 +1,22 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<h2>Saved Jobs</h2>
+<div class="grid">
+    {% for item in saved_jobs %}
+        <div class="card">
+            <h3>{{ item.job.title }}</h3>
+            <p>{{ item.job.company }} · {{ item.job.location }}</p>
+            <p class="muted">Saved on {{ item.created_at|date:"Y-m-d" }}</p>
+            <div class="button-group mt-3">
+                {% if item.job.apply_link %}
+                    <a href="{{ item.job.apply_link }}" target="_blank" class="btn">Apply Now</a>
+                {% endif %}
+                <a class="btn secondary" href="{% url 'job_detail' item.job.id %}">View Job</a>
+            </div>
+        </div>
+    {% empty %}
+        <p>No saved jobs yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}

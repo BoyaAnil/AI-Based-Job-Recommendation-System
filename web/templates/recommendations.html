@@ -1,0 +1,41 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<h2>Recommended Jobs</h2>
+<div class="card">
+    <form method="get">
+        <label for="resume_id">Select Resume</label>
+        <select name="resume_id" id="resume_id">
+            <option value="">-- Choose --</option>
+            {% for resume in resumes %}
+                <option value="{{ resume.id }}" {% if selected_resume and resume.id == selected_resume.id %}selected{% endif %}>
+                    Resume {{ resume.id }} ({{ resume.uploaded_at|date:"Y-m-d" }})
+                </option>
+            {% endfor %}
+        </select>
+        <button class="btn" type="submit">Get Recommendations</button>
+    </form>
+</div>
+
+{% if selected_resume %}
+    <h3>Results for Resume {{ selected_resume.id }}</h3>
+    <div class="grid">
+        {% for rec in results %}
+            <div class="card">
+                <h4>{{ rec.job.title }}</h4>
+                <p>{{ rec.job.company }} · {{ rec.job.location }}</p>
+                <p><strong>Score:</strong> {{ rec.score }}</p>
+                <p class="muted">{{ rec.reason }}</p>
+                <div class="button-group mt-3">
+                    {% if rec.job.apply_link %}
+                        <a href="{{ rec.job.apply_link }}" target="_blank" class="btn">Apply Now</a>
+                    {% endif %}
+                    <a class="btn secondary" href="{% url 'job_detail' rec.job.id %}">View Job</a>
+                </div>
+            </div>
+        {% empty %}
+            <p>No recommendations yet.</p>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

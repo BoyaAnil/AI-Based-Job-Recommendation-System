@@ -1,0 +1,78 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Analyzer</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container nav">
+            <a class="logo" href="{% url 'home' %}">AI Resume Analyzer</a>
+            <nav>
+                <a href="{% url 'job_list' %}">Jobs</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'resume_upload' %}">Upload Resume</a>
+                    <a href="{% url 'recommendations' %}">Recommendations</a>
+                    <a href="{% url 'saved_jobs' %}">Saved Jobs</a>
+                    <a href="{% url 'profile' %}">Profile</a>
+                    {% if user.is_staff %}
+                        <a href="{% url 'admin_dashboard' %}">Admin</a>
+                    {% endif %}
+                    <form id="logout-form" action="{% url 'logout' %}" method="post" style="display:none;">
+                        {% csrf_token %}
+                    </form>
+                    <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}">Login</a>
+                    <a href="{% url 'register' %}">Register</a>
+                {% endif %}
+                    <!-- Theme toggle -->
+                    <button id="theme-toggle" aria-label="Toggle theme" class="btn secondary" style="margin-left:12px">🌙</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>AI-Powered Resume Analyzer & Job Recommendation System</p>
+        </div>
+    </footer>
+        <script>
+            (function() {
+                const toggle = document.getElementById('theme-toggle');
+                const stored = localStorage.getItem('site-theme');
+                if (stored === 'dark') document.body.classList.add('dark-theme');
+
+                function updateButton() {
+                    if (!toggle) return;
+                    toggle.textContent = document.body.classList.contains('dark-theme') ? '☀️' : '🌙';
+                }
+
+                if (toggle) {
+                    updateButton();
+                    toggle.addEventListener('click', () => {
+                        document.body.classList.toggle('dark-theme');
+                        const isDark = document.body.classList.contains('dark-theme');
+                        localStorage.setItem('site-theme', isDark ? 'dark' : 'light');
+                        updateButton();
+                    });
+                }
+            })();
+        </script>
+</body>
+</html>

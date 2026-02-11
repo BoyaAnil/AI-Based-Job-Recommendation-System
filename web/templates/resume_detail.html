@@ -1,0 +1,74 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<h2>Resume Details</h2>
+<div class="resume-layout">
+    <div class="resume-left">
+        <div class="card">
+            <p><strong>Name:</strong> {{ extracted.name|default:"" }}</p>
+            <p><strong>Email:</strong> {{ extracted.email|default:"" }}</p>
+            <p><strong>Phone:</strong> {{ extracted.phone|default:"" }}</p>
+            <div class="actions">
+                <a class="btn secondary" href="{% url 'resume_json_download' resume.id %}">Download JSON</a>
+                <a class="btn" href="{% url 'job_list' %}">Browse Jobs</a>
+            </div>
+        </div>
+
+        <section class="grid">
+            <div class="card">
+                <h3>Resume Insights</h3>
+                <p><strong>Word Count:</strong> {{ word_count }}</p>
+                <p><strong>Skill Count:</strong> {{ skill_count }}</p>
+            </div>
+            <div class="card">
+                <h3>Skills</h3>
+                <p>{{ skills|join:", " }}</p>
+            </div>
+            <div class="card">
+                <h3>Education</h3>
+                {% if education %}
+                    <ul>
+                        {% for item in education %}
+                            <li>{{ item.degree }} {{ item.year }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No education extracted.</p>
+                {% endif %}
+            </div>
+            <div class="card">
+                <h3>Experience</h3>
+                {% if experience %}
+                    <ul>
+                        {% for item in experience %}
+                            <li>{{ item.title }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No experience extracted.</p>
+                {% endif %}
+            </div>
+            <div class="card">
+                <h3>Projects</h3>
+                {% if projects %}
+                    <ul>
+                        {% for item in projects %}
+                            <li>{{ item.name }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No projects extracted.</p>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+    <aside class="resume-right">
+        <div class="card">
+            <h3>Raw Text</h3>
+            <pre class="preformatted">{{ resume.raw_text }}</pre>
+        </div>
+    </aside>
+
+</div>
+{% endblock %}

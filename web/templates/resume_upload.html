@@ -1,0 +1,13 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<div class="card narrow">
+    <h2>Upload Resume</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Upload</button>
+    </form>
+    <p class="muted">Accepted formats: PDF, DOCX.</p>
+</div>
+{% endblock %}

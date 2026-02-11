@@ -1,0 +1,88 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<h2>Job Listings</h2>
+<div class="card">
+    <form method="get" class="filter-form" id="filter-form">
+        <input type="text" name="q" placeholder="Search title or company" value="{{ query }}">
+        <input list="city-list" id="location-input" name="location" placeholder="Location" value="{{ location }}">
+        <datalist id="city-list">
+            <option value="Bengaluru">
+            <option value="Hyderabad">
+            <option value="Chennai">
+            <option value="Mumbai">
+            <option value="Delhi">
+            <option value="Pune">
+            <option value="Bangalore">
+            <option value="New Delhi">
+        </datalist>
+        <input type="text" name="level" placeholder="Level" value="{{ level }}">
+        <button class="btn" type="submit">Filter</button>
+    </form>
+</div>
+
+<!-- Quick city filters -->
+<div class="card mt-2">
+    <strong>Quick filters:</strong>
+    <div class="button-group mt-2">
+        <a class="btn quick-city" href="#" data-city="Bengaluru">Bengaluru</a>
+        <a class="btn quick-city" href="#" data-city="Hyderabad">Hyderabad</a>
+        <a class="btn quick-city" href="#" data-city="Chennai">Chennai</a>
+        <a class="btn quick-city" href="#" data-city="Mumbai">Mumbai</a>
+        <a class="btn quick-city" href="#" data-city="Delhi">Delhi</a>
+        <a class="btn quick-city" href="#" data-city="Pune">Pune</a>
+    </div>
+</div>
+
+<div class="grid">
+    {% for job in jobs %}
+        <div class="card">
+            <h3>{{ job.title }}</h3>
+            <p>{{ job.company }} · {{ job.location }}</p>
+            <p class="muted">{{ job.level }}</p>
+            <div class="button-group mt-3">
+                {% if job.apply_link %}
+                    <a href="{{ job.apply_link }}" target="_blank" class="btn">Apply Now</a>
+                {% endif %}
+                <a class="btn secondary" href="{% url 'job_detail' job.id %}">View Job</a>
+            </div>
+        </div>
+    {% empty %}
+        <p>No jobs found.</p>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Persist preferred city in localStorage and wire quick filter buttons
+(function(){
+    const locInput = document.getElementById('location-input');
+    const form = document.getElementById('filter-form');
+    const saved = localStorage.getItem('preferred_city');
+    if (saved && locInput && !locInput.value) {
+        locInput.value = saved;
+    }
+
+    // when form is submitted, store the chosen city
+    if (form) {
+        form.addEventListener('submit', () => {
+            const v = locInput ? locInput.value.trim() : '';
+            if (v) localStorage.setItem('preferred_city', v);
+        });
+    }
+
+    // quick city buttons
+    document.querySelectorAll('.quick-city').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const city = btn.dataset.city;
+            if (locInput) locInput.value = city;
+            localStorage.setItem('preferred_city', city);
+            // submit form to apply filter
+            form && form.submit();
+        });
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>AI-Powered Resume Analyzer</h1>
+        <p>Upload your resume, extract key information, and get data-driven job recommendations instantly.</p>
+        <div class="hero-actions">
+            {% if user.is_authenticated %}
+                <a class="btn" href="{% url 'resume_upload' %}">Upload Resume</a>
+                <a class="btn secondary" href="{% url 'job_list' %}">Browse Jobs</a>
+            {% else %}
+                <a class="btn" href="{% url 'register' %}">Get Started</a>
+                <a class="btn secondary" href="{% url 'login' %}">Login</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="grid">
+    <div class="card">
+        <h3>Resume Parsing</h3>
+        <p>Extract skills, education, experience, and projects using offline-friendly NLP.</p>
+    </div>
+    <div class="card">
+        <h3>Job Matching</h3>
+        <p>Get match scores and skill gaps compared to role requirements.</p>
+    </div>
+    <div class="card">
+        <h3>Recommendations</h3>
+        <p>Rank open roles by similarity and receive actionable improvements.</p>
+    </div>
+</section>
+{% endblock %}
