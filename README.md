@@ -165,9 +165,11 @@ If your platform builds Docker from repo root, this repo now includes a root `Do
   - `DJANGO_CSRF_TRUSTED_ORIGINS=https://<your-domain>,https://<your-platform-domain>`
   - `DATABASE_URL=<postgres-or-mysql-url>`
   - `AI_SERVICE_URL=<public-url-of-ai-service>`
+  - `AI_SERVICE_FALLBACK_LOCAL=true` (recommended if AI microservice may be unavailable)
 - If deploying services separately:
   - Deploy `ai/` first and verify `/health`.
   - Point Django `AI_SERVICE_URL` to that live AI URL.
+- If you deploy only the Django web service, keep `AI_SERVICE_FALLBACK_LOCAL=true` so resume parsing/matching still works without the Flask AI service.
 - Docker build targets:
   - Web app from repo root: uses `Dockerfile` (default).
   - Web app from subfolder: use `web/Dockerfile`.

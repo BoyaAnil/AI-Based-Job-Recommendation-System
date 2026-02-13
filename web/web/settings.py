@@ -107,6 +107,7 @@ LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "home"
 
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:5000")
+AI_SERVICE_FALLBACK_LOCAL = os.getenv("AI_SERVICE_FALLBACK_LOCAL", "true").lower() == "true"
 RESUME_MAX_FILE_SIZE_MB = int(os.getenv("RESUME_MAX_FILE_SIZE_MB", "2"))
 JSEARCH_API_KEY = os.getenv("JSEARCH_API_KEY", "")
 
