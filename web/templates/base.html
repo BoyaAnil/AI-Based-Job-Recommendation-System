@@ -6,31 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Resume Analyzer</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <header class="site-header">
         <div class="container nav">
             <a class="logo" href="{% url 'home' %}">AI Resume Analyzer</a>
-            <nav>
-                <a href="{% url 'job_list' %}">Jobs</a>
+            <nav class="site-nav">
+                <a class="nav-link{% if request.resolver_match.url_name == 'job_list' %} is-active{% endif %}" href="{% url 'job_list' %}">Jobs</a>
                 {% if user.is_authenticated %}
-                    <a href="{% url 'resume_upload' %}">Upload Resume</a>
-                    <a href="{% url 'recommendations' %}">Recommendations</a>
-                    <a href="{% url 'saved_jobs' %}">Saved Jobs</a>
-                    <a href="{% url 'profile' %}">Profile</a>
+                    <a class="nav-link{% if request.resolver_match.url_name == 'resume_upload' %} is-active{% endif %}" href="{% url 'resume_upload' %}">Upload Resume</a>
+                    <a class="nav-link{% if request.resolver_match.url_name == 'recommendations' %} is-active{% endif %}" href="{% url 'recommendations' %}">Recommendations</a>
+                    <a class="nav-link{% if request.resolver_match.url_name == 'saved_jobs' %} is-active{% endif %}" href="{% url 'saved_jobs' %}">Saved Jobs</a>
+                    <a class="nav-link{% if request.resolver_match.url_name == 'profile' %} is-active{% endif %}" href="{% url 'profile' %}">Profile</a>
                     {% if user.is_staff %}
-                        <a href="{% url 'admin_dashboard' %}">Admin</a>
+                        <a class="nav-link{% if request.resolver_match.url_name == 'admin_dashboard' %} is-active{% endif %}" href="{% url 'admin_dashboard' %}">Admin</a>
                     {% endif %}
                     <form id="logout-form" action="{% url 'logout' %}" method="post" style="display:none;">
                         {% csrf_token %}
                     </form>
-                    <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
+                    <a class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
                 {% else %}
-                    <a href="{% url 'login' %}">Login</a>
-                    <a href="{% url 'register' %}">Register</a>
+                    <a class="nav-link{% if request.resolver_match.url_name == 'login' %} is-active{% endif %}" href="{% url 'login' %}">Login</a>
+                    <a class="nav-link{% if request.resolver_match.url_name == 'register' %} is-active{% endif %}" href="{% url 'register' %}">Register</a>
                 {% endif %}
-                    <!-- Theme toggle -->
-                    <button id="theme-toggle" aria-label="Toggle theme" class="btn secondary" style="margin-left:12px">🌙</button>
+                <button id="theme-toggle" aria-label="Toggle theme" class="theme-toggle">🌙</button>
             </nav>
         </div>
     </header>
@@ -52,27 +52,27 @@
             <p>AI-Powered Resume Analyzer & Job Recommendation System</p>
         </div>
     </footer>
-        <script>
-            (function() {
-                const toggle = document.getElementById('theme-toggle');
-                const stored = localStorage.getItem('site-theme');
-                if (stored === 'dark') document.body.classList.add('dark-theme');
+    <script>
+        (function() {
+            const toggle = document.getElementById('theme-toggle');
+            const stored = localStorage.getItem('site-theme');
+            if (stored === 'dark') document.body.classList.add('dark-theme');
 
-                function updateButton() {
-                    if (!toggle) return;
-                    toggle.textContent = document.body.classList.contains('dark-theme') ? '☀️' : '🌙';
-                }
+            function updateButton() {
+                if (!toggle) return;
+                toggle.textContent = document.body.classList.contains('dark-theme') ? '☀️' : '🌙';
+            }
 
-                if (toggle) {
+            if (toggle) {
+                updateButton();
+                toggle.addEventListener('click', () => {
+                    document.body.classList.toggle('dark-theme');
+                    const isDark = document.body.classList.contains('dark-theme');
+                    localStorage.setItem('site-theme', isDark ? 'dark' : 'light');
                     updateButton();
-                    toggle.addEventListener('click', () => {
-                        document.body.classList.toggle('dark-theme');
-                        const isDark = document.body.classList.contains('dark-theme');
-                        localStorage.setItem('site-theme', isDark ? 'dark' : 'light');
-                        updateButton();
-                    });
-                }
-            })();
-        </script>
+                });
+            }
+        })();
+    </script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm, AuthenticationForm
 
 from .models import Resume, Job, UserProfile
 
@@ -13,6 +13,38 @@ class UserRegistrationForm(UserCreationForm):
     class Meta:
         model = get_user_model()
         fields = ("username", "email", "password1", "password2")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update({
+            "placeholder": "Choose a username",
+            "autocomplete": "username",
+        })
+        self.fields["email"].widget.attrs.update({
+            "placeholder": "name@company.com",
+            "autocomplete": "email",
+        })
+        self.fields["password1"].widget.attrs.update({
+            "placeholder": "Create a strong password",
+            "autocomplete": "new-password",
+        })
+        self.fields["password2"].widget.attrs.update({
+            "placeholder": "Confirm your password",
+            "autocomplete": "new-password",
+        })
+
+
+class CustomAuthenticationForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update({
+            "placeholder": "Username or email",
+            "autocomplete": "username",
+        })
+        self.fields["password"].widget.attrs.update({
+            "placeholder": "Password",
+            "autocomplete": "current-password",
+        })
 
 
 class ResumeUploadForm(forms.ModelForm):

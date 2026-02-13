@@ -1,13 +1,52 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
+
+{% block body_class %}auth-page{% endblock %}
 
 {% block content %}
-<div class="card narrow">
-    <h2>Create Account</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn" type="submit">Register</button>
-    </form>
-    <p class="muted">Already have an account? <a href="{% url 'login' %}">Login</a>.</p>
-</div>
+<section class="auth-layout">
+    <div class="auth-card">
+        <div class="auth-head">
+            <p class="auth-kicker">Join the platform</p>
+            <h1>Create Account</h1>
+            <p class="auth-subtitle">Create your profile to analyze resumes and get smarter job recommendations.</p>
+        </div>
+
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="form-alert" role="alert">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% for field in form %}
+                <div class="auth-field {% if field.errors %}has-error{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+
+                    {% if field.help_text %}
+                        <div class="field-help{% if field.name == 'password1' %} password-rules{% endif %}">
+                            {{ field.help_text|safe }}
+                        </div>
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <ul class="field-errors">
+                            {% for error in field.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button class="auth-submit" type="submit">Register</button>
+        </form>
+
+        <p class="auth-switch">Already have an account? <a href="{% url 'login' %}">Login</a></p>
+    </div>
+</section>
 {% endblock %}

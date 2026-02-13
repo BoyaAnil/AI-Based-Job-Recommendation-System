@@ -1,13 +1,48 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
+
+{% block body_class %}auth-page{% endblock %}
 
 {% block content %}
-<div class="card narrow">
-    <h2>Login</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn" type="submit">Login</button>
-    </form>
-    <p class="muted">No account? <a href="{% url 'register' %}">Register here</a>.</p>
-</div>
+<section class="auth-layout">
+    <div class="auth-card auth-card-compact">
+        <div class="auth-head">
+            <p class="auth-kicker">Welcome back</p>
+            <h1>Sign In</h1>
+            <p class="auth-subtitle">Access your dashboard, resume insights, and personalized job recommendations.</p>
+        </div>
+
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="form-alert" role="alert">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% for field in form %}
+                <div class="auth-field {% if field.errors %}has-error{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <div class="field-help">{{ field.help_text|safe }}</div>
+                    {% endif %}
+                    {% if field.errors %}
+                        <ul class="field-errors">
+                            {% for error in field.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button class="auth-submit" type="submit">Login</button>
+        </form>
+
+        <p class="auth-switch">No account yet? <a href="{% url 'register' %}">Create one</a></p>
+    </div>
+</section>
 {% endblock %}
