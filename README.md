@@ -17,7 +17,7 @@ Full-stack monorepo with Django web app and Flask AI microservice.
 - Offline-friendly NLP (TF-IDF + regex-based skill extraction)
 
 ## Prerequisites
-- Python **3.11+** (Windows users: 3.11–3.13 recommended)
+- Python **3.12+** (required by Django 6.x)
 - pip
 - (Optional) PostgreSQL or MySQL
   - For MySQL: install `mysqlclient` and set `DATABASE_URL` to a MySQL connection string.
@@ -153,6 +153,19 @@ This starts:
 - Flask on `http://localhost:5000`
 - Postgres on `localhost:5432`
 The compose file mounts a shared `/app/media` volume so the Flask service can read uploaded resumes.
+
+## Deployment Notes
+- Use Python `3.12+` in your host runtime (Django 6.0.2 requires it).
+- Set these environment variables in production:
+  - `DJANGO_DEBUG=false`
+  - `DJANGO_SECRET_KEY=<long-random-secret>`
+  - `DJANGO_ALLOWED_HOSTS=<your-domain>,<your-platform-domain>`
+  - `DJANGO_CSRF_TRUSTED_ORIGINS=https://<your-domain>,https://<your-platform-domain>`
+  - `DATABASE_URL=<postgres-or-mysql-url>`
+  - `AI_SERVICE_URL=<public-url-of-ai-service>`
+- If deploying services separately:
+  - Deploy `ai/` first and verify `/health`.
+  - Point Django `AI_SERVICE_URL` to that live AI URL.
 
 ## Tests
 ```bash

@@ -1,5 +1,6 @@
 ﻿from pathlib import Path
 import os
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 import dj_database_url
@@ -10,8 +11,27 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-dev-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 
-allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
-ALLOWED_HOSTS = [host.strip() for host in allowed_hosts if host.strip()] or ["localhost", "127.0.0.1"]
+
+def _csv_env(name: str) -> list[str]:
+    return [value.strip() for value in os.getenv(name, "").split(",") if value.strip()]
+
+
+def _normalize_host(value: str) -> str:
+    if "://" in value:
+        return urlparse(value).netloc.strip()
+    return value.split("/")[0].strip()
+
+
+allowed_hosts = [_normalize_host(value) for value in _csv_env("DJANGO_ALLOWED_HOSTS")]
+for env_name in ("RENDER_EXTERNAL_HOSTNAME", "RAILWAY_PUBLIC_DOMAIN", "VERCEL_URL"):
+    host = _normalize_host(os.getenv(env_name, ""))
+    if host:
+        allowed_hosts.append(host)
+
+if not allowed_hosts:
+    allowed_hosts = ["localhost", "127.0.0.1"] if DEBUG else []
+
+ALLOWED_HOSTS = sorted(set(allowed_hosts))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -90,5 +110,8 @@ AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:5000")
 RESUME_MAX_FILE_SIZE_MB = int(os.getenv("RESUME_MAX_FILE_SIZE_MB", "2"))
 JSEARCH_API_KEY = os.getenv("JSEARCH_API_KEY", "")
 
-csrf_origins = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins if origin.strip()]
+csrf_origins = _csv_env("DJANGO_CSRF_TRUSTED_ORIGINS")
+for host in ALLOWED_HOSTS:
+    if host and host not in ("localhost", "127.0.0.1", "0.0.0.0"):
+        csrf_origins.append(f"https://{host}")
+CSRF_TRUSTED_ORIGINS = sorted(set(csrf_origins))
