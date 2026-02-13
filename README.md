@@ -154,6 +154,8 @@ This starts:
 - Postgres on `localhost:5432`
 The compose file mounts a shared `/app/media` volume so the Flask service can read uploaded resumes.
 
+If your platform builds Docker from repo root, this repo now includes a root `Dockerfile` that runs the Django web app.
+
 ## Deployment Notes
 - Use Python `3.12+` in your host runtime (Django 6.0.2 requires it).
 - Set these environment variables in production:
@@ -166,6 +168,10 @@ The compose file mounts a shared `/app/media` volume so the Flask service can re
 - If deploying services separately:
   - Deploy `ai/` first and verify `/health`.
   - Point Django `AI_SERVICE_URL` to that live AI URL.
+- Docker build targets:
+  - Web app from repo root: uses `Dockerfile` (default).
+  - Web app from subfolder: use `web/Dockerfile`.
+  - AI service: use `ai/Dockerfile`.
 
 ## Tests
 ```bash
