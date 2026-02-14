@@ -15,6 +15,35 @@ urlpatterns = [
         ),
         name="login",
     ),
+    path(
+        "password-reset/",
+        views.CustomPasswordResetView.as_view(),
+        name="password_reset",
+    ),
+    path(
+        "forgot-password/",
+        views.CustomPasswordResetView.as_view(),
+        name="forgot_password",
+    ),
+    path(
+        "password-reset/done/",
+        views.CustomPasswordResetDoneView.as_view(),
+        name="password_reset_done",
+    ),
+    path(
+        "reset/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name="registration/password_reset_confirm.html",
+        ),
+        name="password_reset_confirm",
+    ),
+    path(
+        "reset/done/",
+        auth_views.PasswordResetCompleteView.as_view(
+            template_name="registration/password_reset_complete.html",
+        ),
+        name="password_reset_complete",
+    ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("profile/", views.profile, name="profile"),
     path("resumes/upload/", views.resume_upload, name="resume_upload"),

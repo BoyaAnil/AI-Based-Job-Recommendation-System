@@ -106,6 +106,24 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "home"
 
+_email_backend_env = os.getenv("DJANGO_EMAIL_BACKEND", "").strip()
+if _email_backend_env:
+    EMAIL_BACKEND = _email_backend_env
+elif os.getenv("DJANGO_EMAIL_HOST_USER", "").strip() and os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "").strip():
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend"
+DEFAULT_FROM_EMAIL = os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "noreply@localhost")
+EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("DJANGO_EMAIL_PORT", "25"))
+EMAIL_HOST_USER = os.getenv("DJANGO_EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("DJANGO_EMAIL_USE_TLS", "false").lower() == "true"
+EMAIL_USE_SSL = os.getenv("DJANGO_EMAIL_USE_SSL", "false").lower() == "true"
+EMAIL_FILE_PATH = os.getenv("DJANGO_EMAIL_FILE_PATH", str(BASE_DIR / "sent_emails"))
+if EMAIL_BACKEND == "django.core.mail.backends.filebased.EmailBackend":
+    Path(EMAIL_FILE_PATH).mkdir(parents=True, exist_ok=True)
+
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:5000")
 AI_SERVICE_FALLBACK_LOCAL = os.getenv("AI_SERVICE_FALLBACK_LOCAL", "true").lower() == "true"
 RESUME_MAX_FILE_SIZE_MB = int(os.getenv("RESUME_MAX_FILE_SIZE_MB", "2"))

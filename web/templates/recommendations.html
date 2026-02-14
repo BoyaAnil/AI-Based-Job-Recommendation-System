@@ -13,12 +13,44 @@
                 </option>
             {% endfor %}
         </select>
+        <div class="form-row mt-3">
+            <div class="form-group">
+                <label for="api_query">API Query</label>
+                <input type="text" id="api_query" name="api_query" value="{{ api_query|default:'software developer' }}">
+            </div>
+            <div class="form-group">
+                <label for="api_location">API Location</label>
+                <input type="text" id="api_location" name="api_location" value="{{ api_location|default:'India' }}">
+            </div>
+        </div>
+        <div class="form-row mt-3">
+            <div class="form-group">
+                <label for="api_limit">API Limit</label>
+                <input type="number" id="api_limit" name="api_limit" min="5" max="150" value="{{ api_limit|default:50 }}">
+            </div>
+            <div class="form-group">
+                <label for="include_api">Include API Jobs</label>
+                <select id="include_api" name="include_api">
+                    <option value="1" {% if include_api %}selected{% endif %}>Yes (API + Database)</option>
+                    <option value="0" {% if not include_api %}selected{% endif %}>No (Database only)</option>
+                </select>
+            </div>
+        </div>
         <button class="btn" type="submit">Get Recommendations</button>
     </form>
 </div>
 
 {% if selected_resume %}
     <h3>Results for Resume {{ selected_resume.id }}</h3>
+    {% if include_api %}
+        <p class="muted">
+            API source used: {{ api_source|default:"none" }}.
+            DB jobs before API: {{ db_jobs_before_api|default:0 }}.
+            Added: {{ api_jobs_added|default:0 }}.
+            Updated: {{ api_jobs_updated|default:0 }}.
+            Recommendation pool size: {{ recommendation_pool_size|default:0 }}.
+        </p>
+    {% endif %}
     <div class="grid">
         {% for rec in results %}
             <div class="card">

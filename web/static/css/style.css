@@ -1073,6 +1073,22 @@ main {
     transform: translateY(0);
 }
 
+.auth-meta {
+    margin-top: 0.2rem;
+    margin-bottom: 0;
+    text-align: right;
+    font-size: 0.9rem;
+}
+
+.auth-meta a {
+    color: #7dd3fc;
+    font-weight: 600;
+}
+
+.auth-meta a:hover {
+    color: #bae6fd;
+}
+
 .auth-switch {
     margin-top: 1.35rem;
     margin-bottom: 0;

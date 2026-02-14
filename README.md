@@ -67,6 +67,38 @@ This loads `sample_data/jobs.json` and creates demo users.
 
 A sample resume is in `sample_data/sample_resume.pdf`.
 
+## Real Jobs (Latest)
+To fetch real jobs (instead of sample jobs):
+```bash
+cd web
+python manage.py fetch_jobs --source themuse --query "software" --location "India" --limit 100 --require-location-match --clear
+```
+
+- `--source auto`: uses JSearch if `JSEARCH_API_KEY` is set; otherwise falls back to The Muse, then Remotive.
+- `--source jsearch`: force JSearch (requires RapidAPI key).
+- `--source themuse`: use The Muse public jobs API (no key required).
+- `--source remotive`: force Remotive (no key required).
+- `--require-location-match`: only keeps jobs whose location contains the `--location` value.
+
+Example for location-specific JSearch:
+```bash
+python manage.py fetch_jobs --source jsearch --query "python developer" --location "India" --limit 50 --clear
+```
+
+## Daily Auto Refresh (Windows)
+The repo includes:
+- `web/scripts/daily_job_refresh.bat`
+
+Run once to create a daily scheduled task at 09:00:
+```powershell
+$taskName='AI Resume Analyzer Daily Job Refresh'
+$script='C:\path\to\repo\web\scripts\daily_job_refresh.bat'
+$action=New-ScheduledTaskAction -Execute $script
+$trigger=New-ScheduledTaskTrigger -Daily -At 9:00AM
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Description 'Refresh latest real jobs daily for AI Resume Analyzer' -Force
+```
+The default batch script is preconfigured for India (`--location "India"`).
+
 ## API Contracts (Django -> Flask)
 
 ### 1) GET `/health`

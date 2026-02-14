@@ -341,8 +341,10 @@ def fetch_remotive_jobs(limit: int = 50) -> list:
 
         formatted_jobs = []
         for job in jobs_list:
-            # Extract skills from description (basic extraction)
-            description = job.get("job_description", "")
+            # Remotive returns HTML in `description`; normalize to plain text for search/display.
+            raw_description = job.get("description") or job.get("job_description") or ""
+            description = re.sub(r"<[^>]+>", " ", raw_description)
+            description = re.sub(r"\s+", " ", description).strip()
             description_lower = description.lower()
 
             skills = []
@@ -359,15 +361,24 @@ def fetch_remotive_jobs(limit: int = 50) -> list:
                 if skill in description_lower:
                     skills.append(skill)
 
+            title = job.get("title") or job.get("job_title") or "Unknown Position"
+            title_lower = title.lower()
+            if "senior" in title_lower or "lead" in title_lower or "principal" in title_lower:
+                level = "Senior"
+            elif "junior" in title_lower or "entry" in title_lower or "intern" in title_lower:
+                level = "Junior"
+            else:
+                level = "Mid"
+
             formatted_jobs.append({
-                "title": job.get("job_title", "Unknown Position"),
+                "title": title,
                 "company": job.get("company_name", "Unknown Company"),
-                "location": "Remote",
-                "level": "Mid",  # Default level since API doesn't provide it
-                "salary_range": "",  # Remotive API doesn't provide salary
+                "location": job.get("candidate_required_location") or "Remote",
+                "level": level,
+                "salary_range": job.get("salary", "") or "",
                 "description": description[:1000],  # Truncate to 1000 chars
                 "required_skills": list(set(skills)) if skills else ["remote", "general"],
-                "apply_link": job.get("url", ""),
+                "apply_link": job.get("url") or "",
             })
 
         return formatted_jobs
@@ -375,42 +386,14 @@ def fetch_remotive_jobs(limit: int = 50) -> list:
         raise AIServiceError(f"Failed to fetch jobs from Remotive: {exc}") from exc
 
 
-def fetch_jsearch_jobs(query: str = "developer", location: str = "India", limit: int = 50) -> list:
-    """Fetch real jobs from Jobs API on RapidAPI."""
-    api_key = settings.JSEARCH_API_KEY
-    if not api_key:
-        raise AIServiceError("JSEARCH_API_KEY not configured in .env file")
-
+def fetch_muse_jobs(query: str = "developer", location: str = "India", limit: int = 50) -> list:
+    """Fetch real jobs from The Muse public API (no API key required)."""
     try:
-        # Using the working Jobs API endpoint
-        url = "https://jobs-api14.p.rapidapi.com/search"
-        headers = {
-            "x-rapidapi-key": api_key,
-            "x-rapidapi-host": "jobs-api14.p.rapidapi.com"
-        }
-
-        params = {
-            "keywords": query,
-            "location": location,
-            "page": 1,
-            "num_pages": 1,
-        }
-
-        response = requests.get(url, headers=headers, params=params, timeout=15)
-        response.raise_for_status()
-
-        data = response.json()
-
-        # Different APIs have different response structures
-        jobs_list = []
-        if isinstance(data, dict):
-            jobs_list = data.get("data", [])
-        elif isinstance(data, list):
-            jobs_list = data
-
-        jobs_list = jobs_list[:limit]
-
-        formatted_jobs = []
+        page = 1
+        max_pages = 30
+        collected = []
+        query_l = (query or "").strip().lower()
+        query_terms = [term for term in re.split(r"\s+", query_l) if len(term) >= 3]
 
         skill_keywords = [
             "python", "javascript", "java", "c#", "c++", "golang", "rust", "ruby",
@@ -423,52 +406,228 @@ def fetch_jsearch_jobs(query: str = "developer", location: str = "India", limit:
             "devops", "linux", "bash", "shell", "ci/cd",
         ]
 
-        for job in jobs_list:
-            # Handle different response formats
-            title = job.get("title") or job.get("job_title") or "Unknown Position"
-            company = job.get("company") or job.get("employer") or "Unknown Company"
-            location_str = job.get("location") or job.get("job_location") or location
-            description = job.get("description") or job.get("job_description") or "No description available"
-            apply_link = job.get("url") or job.get("job_apply_link") or job.get("apply_link") or ""
+        while len(collected) < limit and page <= max_pages:
+            response = requests.get(
+                "https://www.themuse.com/api/public/jobs",
+                params={"location": location, "page": page},
+                timeout=15,
+            )
+            if response.status_code == 400:
+                # The Muse can return 400 when page exceeds available range for a location.
+                break
+            response.raise_for_status()
+            payload = response.json()
 
-            description_lower = description.lower()
+            rows = payload.get("results", [])
+            if not rows:
+                break
 
-            # Extract skills from description
-            skills = []
-            for skill in skill_keywords:
-                if skill in description_lower:
-                    skills.append(skill)
+            for row in rows:
+                if len(collected) >= limit:
+                    break
 
-            # Determine experience level
-            title_lower = title.lower()
-            if "senior" in title_lower or "lead" in title_lower or "principal" in title_lower:
-                level = "Senior"
-            elif "junior" in title_lower or "entry" in title_lower or "intern" in title_lower:
-                level = "Junior"
-            else:
-                level = "Mid"
+                title = row.get("name") or "Unknown Position"
+                company = (row.get("company") or {}).get("name") or "Unknown Company"
 
-            # Extract salary if available
-            salary_range = ""
-            if job.get("salary") or job.get("salary_min"):
-                salary_min = job.get("salary_min") or job.get("salary", "")
-                salary_max = job.get("salary_max") or ""
-                if salary_min and salary_max:
-                    salary_range = f"${salary_min:,} - ${salary_max:,}"
-                elif salary_min:
-                    salary_range = f"${salary_min:,}"
+                locations = [loc.get("name", "").strip() for loc in (row.get("locations") or []) if loc.get("name")]
+                location_str = ", ".join(locations) if locations else (location or "Remote")
 
-            formatted_jobs.append({
-                "title": title,
-                "company": company,
-                "location": location_str,
-                "level": level,
-                "salary_range": salary_range,
-                "description": description[:2000] if description else "No description available",
-                "required_skills": list(set(skills)) if skills else ["general"],
-                "apply_link": apply_link,
-            })
+                raw_description = row.get("contents") or "No description available"
+                description = re.sub(r"<[^>]+>", " ", raw_description)
+                description = re.sub(r"\s+", " ", description).strip()
+                description_lower = description.lower()
 
-        return formatted_jobs
+                if query_l:
+                    haystack = f"{title} {description_lower}".lower()
+                    if query_l not in haystack and not any(term in haystack for term in query_terms):
+                        continue
+
+                levels = [lvl.get("name", "") for lvl in (row.get("levels") or [])]
+                level_text = " ".join(levels).lower()
+                if "senior" in level_text or "lead" in level_text or "principal" in level_text:
+                    level = "Senior"
+                elif "junior" in level_text or "entry" in level_text or "intern" in level_text:
+                    level = "Junior"
+                else:
+                    level = "Mid"
+
+                skills = [skill for skill in skill_keywords if skill in description_lower]
+                apply_link = (row.get("refs") or {}).get("landing_page") or ""
+
+                collected.append({
+                    "title": title,
+                    "company": company,
+                    "location": location_str,
+                    "level": level,
+                    "salary_range": "",
+                    "description": description[:2000],
+                    "required_skills": sorted(set(skills)) if skills else ["general"],
+                    "apply_link": apply_link,
+                })
+
+            page_count = int(payload.get("page_count") or page)
+            if page >= page_count:
+                break
+            page += 1
+
+        return collected[:limit]
     except Exception as exc:
-        raise AIServiceError(f"Failed to fetch jobs: {exc}") from exc
+        raise AIServiceError(f"Failed to fetch jobs from The Muse: {exc}") from exc
+
+
+def fetch_jsearch_jobs(query: str = "developer", location: str = "India", limit: int = 50) -> list:
+    """Fetch real jobs from RapidAPI job endpoints (tries multiple compatible hosts)."""
+    api_key = settings.JSEARCH_API_KEY
+    if not api_key:
+        raise AIServiceError("JSEARCH_API_KEY not configured in .env file")
+
+    skill_keywords = [
+        "python", "javascript", "java", "c#", "c++", "golang", "rust", "ruby",
+        "react", "vue", "angular", "django", "flask", "fastapi", "spring",
+        "sql", "postgresql", "mysql", "mongodb", "redis", "elasticsearch",
+        "docker", "kubernetes", "aws", "gcp", "azure", "jenkins",
+        "git", "rest", "graphql", "api", "html", "css", "typescript",
+        "nodejs", "scala", "php", "laravel", "rails", "nestjs",
+        "machine learning", "ml", "ai", "tensorflow", "pytorch",
+        "devops", "linux", "bash", "shell", "ci/cd",
+    ]
+
+    endpoints = [
+        {
+            "name": "jobs-api14",
+            "url": "https://jobs-api14.p.rapidapi.com/search",
+            "host": "jobs-api14.p.rapidapi.com",
+            "params": {
+                "keywords": query,
+                "location": location,
+                "page": 1,
+                "num_pages": 1,
+            },
+        },
+        {
+            "name": "jsearch",
+            "url": "https://jsearch.p.rapidapi.com/search",
+            "host": "jsearch.p.rapidapi.com",
+            "params": {
+                "query": f"{query} in {location}" if location else query,
+                "page": "1",
+                "num_pages": "1",
+            },
+        },
+    ]
+
+    errors = []
+    for endpoint in endpoints:
+        try:
+            headers = {
+                "x-rapidapi-key": api_key,
+                "x-rapidapi-host": endpoint["host"],
+            }
+            response = requests.get(endpoint["url"], headers=headers, params=endpoint["params"], timeout=15)
+
+            # Keep provider-specific message when the key isn't subscribed.
+            if response.status_code == 403:
+                message = ""
+                try:
+                    message = (response.json() or {}).get("message", "")
+                except Exception:
+                    message = response.text
+                errors.append(f"{endpoint['name']}: {message or '403 Forbidden'}")
+                continue
+
+            response.raise_for_status()
+            data = response.json()
+
+            jobs_list = []
+            if isinstance(data, dict):
+                jobs_list = data.get("data", []) or data.get("results", [])
+            elif isinstance(data, list):
+                jobs_list = data
+
+            jobs_list = jobs_list[:limit]
+            formatted_jobs = []
+
+            for job in jobs_list:
+                title = job.get("title") or job.get("job_title") or "Unknown Position"
+                company = (
+                    job.get("company")
+                    or job.get("employer")
+                    or job.get("employer_name")
+                    or "Unknown Company"
+                )
+
+                job_city = job.get("job_city") or ""
+                job_country = job.get("job_country") or ""
+                location_str = (
+                    job.get("location")
+                    or job.get("job_location")
+                    or ", ".join([value for value in [job_city, job_country] if value])
+                    or location
+                )
+
+                description = job.get("description") or job.get("job_description") or "No description available"
+                apply_link = (
+                    job.get("url")
+                    or job.get("job_apply_link")
+                    or job.get("apply_link")
+                    or ""
+                )
+                description_lower = description.lower()
+                skills = [skill for skill in skill_keywords if skill in description_lower]
+
+                title_lower = title.lower()
+                if "senior" in title_lower or "lead" in title_lower or "principal" in title_lower:
+                    level = "Senior"
+                elif "junior" in title_lower or "entry" in title_lower or "intern" in title_lower:
+                    level = "Junior"
+                else:
+                    level = "Mid"
+
+                salary_range = ""
+                salary_min = job.get("salary_min") or job.get("job_min_salary") or ""
+                salary_max = job.get("salary_max") or job.get("job_max_salary") or ""
+                if salary_min and salary_max:
+                    salary_range = f"${salary_min} - ${salary_max}"
+                elif salary_min:
+                    salary_range = f"${salary_min}"
+                elif job.get("salary"):
+                    salary_range = str(job.get("salary"))
+
+                formatted_jobs.append({
+                    "title": title,
+                    "company": company,
+                    "location": location_str,
+                    "level": level,
+                    "salary_range": salary_range,
+                    "description": description[:2000] if description else "No description available",
+                    "required_skills": sorted(set(skills)) if skills else ["general"],
+                    "apply_link": apply_link,
+                })
+
+            if formatted_jobs:
+                return formatted_jobs
+
+            errors.append(f"{endpoint['name']}: no jobs returned")
+        except Exception as exc:
+            errors.append(f"{endpoint['name']}: {exc}")
+
+    raise AIServiceError("Failed to fetch jobs: " + " | ".join(errors))
+
+
+def fetch_jobs_auto(query: str = "developer", location: str = "India", limit: int = 50) -> tuple[list, str]:
+    """
+    Fetch jobs with source fallback order:
+    JSearch -> The Muse -> Remotive
+
+    Returns:
+        (jobs, source_name)
+    """
+    try:
+        return fetch_jsearch_jobs(query=query, location=location, limit=limit), "jsearch"
+    except AIServiceError as jsearch_exc:
+        logger.warning("JSearch unavailable (%s). Falling back to The Muse.", jsearch_exc)
+        try:
+            return fetch_muse_jobs(query=query, location=location, limit=limit), "themuse"
+        except AIServiceError as muse_exc:
+            logger.warning("The Muse unavailable (%s). Falling back to Remotive.", muse_exc)
+            return fetch_remotive_jobs(limit=limit), "remotive"

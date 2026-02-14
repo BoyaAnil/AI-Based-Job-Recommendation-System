@@ -40,6 +40,7 @@
             {% endfor %}
 
             <button class="auth-submit" type="submit">Login</button>
+            <p class="auth-meta"><a href="{% url 'password_reset' %}">Forgot password?</a></p>
         </form>
 
         <p class="auth-switch">No account yet? <a href="{% url 'register' %}">Create one</a></p>

@@ -1,23 +1,68 @@
 ﻿import json
 from collections import Counter
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordChangeView
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.views import PasswordResetDoneView, PasswordResetView
 from django.db.models import Avg, Q
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from django.views.decorators.http import require_POST
 
 from .forms import UserRegistrationForm, ResumeUploadForm, JobForm, ProfileUpdateForm, CustomPasswordChangeForm
 from .models import Resume, Job, MatchResult, Recommendation, SavedJob, UserProfile
-from .services import parse_resume, match_resume_job, recommend_jobs, skill_gap, AIServiceError
+from .services import (
+    parse_resume,
+    match_resume_job,
+    recommend_jobs,
+    skill_gap,
+    fetch_jobs_auto,
+    AIServiceError,
+)
 
 
 def home(request):
     return render(request, "home.html")
+
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = "registration/password_reset_form.html"
+    email_template_name = "registration/password_reset_email.html"
+    subject_template_name = "registration/password_reset_subject.txt"
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self.request.session.pop("debug_password_reset_link", None)
+        if settings.DEBUG:
+            users = list(form.get_users(form.cleaned_data["email"]))
+            if users:
+                user = users[0]
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                token = default_token_generator.make_token(user)
+                link = self.request.build_absolute_uri(
+                    reverse("password_reset_confirm", kwargs={"uidb64": uid, "token": token})
+                )
+                self.request.session["debug_password_reset_link"] = link
+        return response
+
+
+class CustomPasswordResetDoneView(PasswordResetDoneView):
+    template_name = "registration/password_reset_done.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if settings.DEBUG:
+            context["debug_reset_link"] = self.request.session.get("debug_password_reset_link")
+            context["debug_email_file_path"] = settings.EMAIL_FILE_PATH
+        return context
 
 
 def register(request):
@@ -128,7 +173,8 @@ def job_list(request):
     location = request.GET.get("location", "")
     level = request.GET.get("level", "")
 
-    jobs = Job.objects.all().order_by("title")
+    # Show freshly imported jobs first, then stable order for same timestamps.
+    jobs = Job.objects.all().order_by("-created_at", "title")
 
     if query:
         jobs = jobs.filter(Q(title__icontains=query) | Q(company__icontains=query))
@@ -294,12 +340,96 @@ def match_result_detail(request, pk):
 def recommendations(request):
     resumes = Resume.objects.filter(user=request.user).order_by("-uploaded_at")
     resume_id = request.GET.get("resume_id")
+    api_query = (request.GET.get("api_query") or "software developer").strip() or "software developer"
+    api_location = (request.GET.get("api_location") or "India").strip() or "India"
+    include_api = (request.GET.get("include_api") or "1") == "1"
+    try:
+        api_limit = int(request.GET.get("api_limit", 50))
+    except ValueError:
+        api_limit = 50
+    api_limit = max(5, min(api_limit, 150))
+
     selected_resume = None
     results = []
+    api_source = ""
+    api_jobs_added = 0
+    api_jobs_updated = 0
+    db_jobs_before_api = Job.objects.count()
+    recommendation_pool_size = 0
 
     if resume_id:
         selected_resume = get_object_or_404(Resume, pk=resume_id, user=request.user)
-        jobs_payload = list(Job.objects.values("id", "title", "description", "required_skills"))
+
+        if include_api:
+            try:
+                fetched_jobs, api_source = fetch_jobs_auto(
+                    query=api_query,
+                    location=api_location,
+                    limit=api_limit,
+                )
+
+                location_key = api_location.lower()
+                fetched_jobs = [
+                    row for row in fetched_jobs
+                    if location_key in (row.get("location", "") or "").lower()
+                ]
+
+                refresh_time = timezone.now()
+                for job_data in fetched_jobs:
+                    if not job_data.get("title") or not job_data.get("company"):
+                        continue
+
+                    defaults = {
+                        "level": job_data.get("level", "Mid"),
+                        "salary_range": job_data.get("salary_range", ""),
+                        "description": job_data.get("description", "No description available"),
+                        "required_skills": job_data.get("required_skills", []),
+                        "apply_link": job_data.get("apply_link", ""),
+                        "created_at": refresh_time,
+                    }
+                    _, created = Job.objects.update_or_create(
+                        title=job_data["title"],
+                        company=job_data["company"],
+                        location=job_data.get("location", api_location),
+                        defaults=defaults,
+                    )
+                    if created:
+                        api_jobs_added += 1
+                    else:
+                        api_jobs_updated += 1
+
+                if api_source:
+                    messages.info(
+                        request,
+                        (
+                            f"Recommendation pool merged from Database + API ({api_source}). "
+                            f"API new: {api_jobs_added}, updated: {api_jobs_updated}."
+                        ),
+                    )
+            except AIServiceError as exc:
+                messages.warning(request, f"Could not fetch API jobs ({exc}). Using database jobs only.")
+
+        jobs_payload = list(
+            Job.objects.order_by("-created_at", "title")
+            .values("id", "title", "description", "required_skills")[:500]
+        )
+        recommendation_pool_size = len(jobs_payload)
+        if not jobs_payload:
+            messages.warning(request, "No jobs available for recommendations yet.")
+            return render(request, "recommendations.html", {
+                "resumes": resumes,
+                "selected_resume": selected_resume,
+                "results": results,
+                "api_query": api_query,
+                "api_location": api_location,
+                "api_limit": api_limit,
+                "include_api": include_api,
+                "api_source": api_source,
+                "api_jobs_added": api_jobs_added,
+                "api_jobs_updated": api_jobs_updated,
+                "db_jobs_before_api": db_jobs_before_api,
+                "recommendation_pool_size": recommendation_pool_size,
+            })
 
         try:
             ai_result = recommend_jobs(selected_resume.raw_text, jobs_payload, top_n=10)
@@ -322,7 +452,16 @@ def recommendations(request):
     return render(request, "recommendations.html", {
         "resumes": resumes,
         "selected_resume": selected_resume,
-        "results": results
+        "results": results,
+        "api_query": api_query,
+        "api_location": api_location,
+        "api_limit": api_limit,
+        "include_api": include_api,
+        "api_source": api_source,
+        "api_jobs_added": api_jobs_added,
+        "api_jobs_updated": api_jobs_updated,
+        "db_jobs_before_api": db_jobs_before_api,
+        "recommendation_pool_size": recommendation_pool_size,
     })
 
 
