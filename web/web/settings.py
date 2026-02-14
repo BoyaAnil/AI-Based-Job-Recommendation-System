@@ -18,18 +18,34 @@ def _csv_env(name: str) -> list[str]:
 
 def _normalize_host(value: str) -> str:
     if "://" in value:
-        return urlparse(value).netloc.strip()
-    return value.split("/")[0].strip()
+        host = urlparse(value).netloc.strip()
+    else:
+        host = value.split("/")[0].strip()
+    # Django ALLOWED_HOSTS expects hostnames, not host:port.
+    if ":" in host:
+        host = host.split(":", 1)[0]
+    return host
 
 
 allowed_hosts = [_normalize_host(value) for value in _csv_env("DJANGO_ALLOWED_HOSTS")]
-for env_name in ("RENDER_EXTERNAL_HOSTNAME", "RAILWAY_PUBLIC_DOMAIN", "VERCEL_URL"):
+for env_name in (
+    "RENDER_EXTERNAL_HOSTNAME",
+    "RAILWAY_PUBLIC_DOMAIN",
+    "VERCEL_URL",
+    "BACK4APP_APP_HOST",
+    "BACK4APP_PUBLIC_DOMAIN",
+    "BACK4APP_URL",
+):
     host = _normalize_host(os.getenv(env_name, ""))
     if host:
         allowed_hosts.append(host)
 
 if not allowed_hosts:
-    allowed_hosts = ["localhost", "127.0.0.1"] if DEBUG else []
+    if DEBUG:
+        allowed_hosts = ["localhost", "127.0.0.1"]
+    else:
+        # Back4App container runtime hostnames are typically <node>.containers.back4app.com.
+        allowed_hosts = [".containers.back4app.com"]
 
 ALLOWED_HOSTS = sorted(set(allowed_hosts))
 
@@ -131,6 +147,10 @@ JSEARCH_API_KEY = os.getenv("JSEARCH_API_KEY", "")
 
 csrf_origins = _csv_env("DJANGO_CSRF_TRUSTED_ORIGINS")
 for host in ALLOWED_HOSTS:
-    if host and host not in ("localhost", "127.0.0.1", "0.0.0.0"):
+    if not host or host in ("localhost", "127.0.0.1", "0.0.0.0", "*"):
+        continue
+    if host.startswith("."):
+        csrf_origins.append(f"https://*{host}")
+    else:
         csrf_origins.append(f"https://{host}")
 CSRF_TRUSTED_ORIGINS = sorted(set(csrf_origins))
