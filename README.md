@@ -2,6 +2,13 @@
 
 Full-stack monorepo with Django web app and Flask AI microservice.
 
+## Documentation
+- Start here: `docs/README.md`
+- Quickstart: `docs/quickstart.md`
+- Architecture: `docs/architecture.md`
+- API: `docs/api.md`
+- Deployment: `docs/deployment.md`
+
 ## Project Structure
 - `web/` Django app (UI, auth, database, dashboards)
 - `ai/` Flask AI service (resume parsing, matching, recommendations)
