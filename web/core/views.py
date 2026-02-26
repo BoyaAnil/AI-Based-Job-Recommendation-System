@@ -41,8 +41,13 @@ class CustomPasswordResetView(PasswordResetView):
     def form_valid(self, form):
         response = super().form_valid(form)
         self.request.session.pop("debug_password_reset_link", None)
+        self.request.session.pop("debug_password_reset_user_found", None)
+        self.request.session.pop("debug_password_reset_email", None)
         if settings.DEBUG:
-            users = list(form.get_users(form.cleaned_data["email"]))
+            submitted_email = (form.cleaned_data.get("email") or "").strip()
+            users = list(form.get_users(submitted_email))
+            self.request.session["debug_password_reset_email"] = submitted_email
+            self.request.session["debug_password_reset_user_found"] = bool(users)
             if users:
                 user = users[0]
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -61,7 +66,14 @@ class CustomPasswordResetDoneView(PasswordResetDoneView):
         context = super().get_context_data(**kwargs)
         if settings.DEBUG:
             context["debug_reset_link"] = self.request.session.get("debug_password_reset_link")
-            context["debug_email_file_path"] = settings.EMAIL_FILE_PATH
+            context["debug_email_backend"] = settings.EMAIL_BACKEND
+            context["debug_email_file_path"] = (
+                settings.EMAIL_FILE_PATH
+                if settings.EMAIL_BACKEND == "django.core.mail.backends.filebased.EmailBackend"
+                else ""
+            )
+            context["debug_requested_email"] = self.request.session.get("debug_password_reset_email", "")
+            context["debug_user_found"] = self.request.session.get("debug_password_reset_user_found")
         return context
 
 

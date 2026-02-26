@@ -16,6 +16,13 @@ def _csv_env(name: str) -> list[str]:
     return [value.strip() for value in os.getenv(name, "").split(",") if value.strip()]
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return value.strip().lower() == "true"
+
+
 def _normalize_host(value: str) -> str:
     if "://" in value:
         host = urlparse(value).netloc.strip()
@@ -123,19 +130,36 @@ LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "home"
 
 _email_backend_env = os.getenv("DJANGO_EMAIL_BACKEND", "").strip()
+EMAIL_HOST_USER = os.getenv("DJANGO_EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "").strip()
+_smtp_credentials_configured = bool(EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
+
+EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", "").strip()
+_email_port_raw = os.getenv("DJANGO_EMAIL_PORT", "").strip()
+EMAIL_USE_TLS = _env_bool("DJANGO_EMAIL_USE_TLS", False)
+EMAIL_USE_SSL = _env_bool("DJANGO_EMAIL_USE_SSL", False)
+
+if _smtp_credentials_configured and not EMAIL_HOST and EMAIL_HOST_USER.lower().endswith("@gmail.com"):
+    EMAIL_HOST = "smtp.gmail.com"
+    if not _email_port_raw:
+        _email_port_raw = "587"
+    if os.getenv("DJANGO_EMAIL_USE_TLS") is None and os.getenv("DJANGO_EMAIL_USE_SSL") is None:
+        EMAIL_USE_TLS = True
+        EMAIL_USE_SSL = False
+
+if not EMAIL_HOST:
+    EMAIL_HOST = "localhost"
+if not _email_port_raw:
+    _email_port_raw = "465" if EMAIL_USE_SSL else "25"
+EMAIL_PORT = int(_email_port_raw)
+
 if _email_backend_env:
     EMAIL_BACKEND = _email_backend_env
-elif os.getenv("DJANGO_EMAIL_HOST_USER", "").strip() and os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "").strip():
+elif _smtp_credentials_configured:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend"
 DEFAULT_FROM_EMAIL = os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "noreply@localhost")
-EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", "localhost")
-EMAIL_PORT = int(os.getenv("DJANGO_EMAIL_PORT", "25"))
-EMAIL_HOST_USER = os.getenv("DJANGO_EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = os.getenv("DJANGO_EMAIL_USE_TLS", "false").lower() == "true"
-EMAIL_USE_SSL = os.getenv("DJANGO_EMAIL_USE_SSL", "false").lower() == "true"
 EMAIL_FILE_PATH = os.getenv("DJANGO_EMAIL_FILE_PATH", str(BASE_DIR / "sent_emails"))
 if EMAIL_BACKEND == "django.core.mail.backends.filebased.EmailBackend":
     Path(EMAIL_FILE_PATH).mkdir(parents=True, exist_ok=True)

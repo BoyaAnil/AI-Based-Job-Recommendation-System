@@ -230,6 +230,15 @@ Remove-Item -Recurse -Force .venv
 python -m venv .venv
 ```
 - If you use PostgreSQL locally on Windows, make sure PostgreSQL is installed so `pg_config` is on your PATH.
+- Password reset email not arriving:
+  - In local debug mode, emails may be written to `web/sent_emails` instead of sent via SMTP.
+  - For real Gmail delivery, set:
+    - `DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend`
+    - `DJANGO_EMAIL_HOST=smtp.gmail.com`
+    - `DJANGO_EMAIL_PORT=587`
+    - `DJANGO_EMAIL_USE_TLS=true`
+    - `DJANGO_EMAIL_HOST_USER=<your-gmail>`
+    - `DJANGO_EMAIL_HOST_PASSWORD=<gmail-app-password>`
 
 ## Demo Script (Click-by-Click)
 1. Start Flask (`ai/`) and Django (`web/`).
