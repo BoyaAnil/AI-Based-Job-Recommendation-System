@@ -240,10 +240,11 @@ def _recommend_jobs_local(resume_text: str, jobs_payload: list, top_n: int = 10)
     recommendations = []
     for job in jobs_payload:
         result = _build_match_response(resume_text, job)
+        if not result["matched_skills"]:
+            continue
+
         job_id = job.get("id") or job.get("job_id")
         reason = "Matched skills: " + ", ".join(result["matched_skills"][:5])
-        if not result["matched_skills"]:
-            reason = "Based on overall text similarity."
         recommendations.append({
             "job_id": job_id,
             "score": result["score"],

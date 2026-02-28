@@ -29,7 +29,7 @@
     {% if resumes %}
         <select id="resume-select">
             {% for resume in resumes %}
-                <option value="{{ resume.id }}">Resume {{ resume.id }} ({{ resume.uploaded_at|date:"Y-m-d" }})</option>
+                <option value="{{ resume.id }}">{{ resume.display_name }} ({{ resume.uploaded_at|date:"Y-m-d" }})</option>
             {% endfor %}
         </select>
         <button class="btn" id="match-btn">Check Match</button>

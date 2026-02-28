@@ -2,8 +2,27 @@
 
 {% block content %}
 <h2>Job Listings</h2>
+{% if match_filter_active and selected_resume %}
+    <p class="muted">
+        Showing {{ matching_jobs_count }} matching job{{ matching_jobs_count|pluralize }} for {{ selected_resume.display_name }}.
+        <a href="{% url 'job_list' %}?resume_id={{ selected_resume.id }}&show_all=1">Show all jobs</a>
+    </p>
+{% elif show_all %}
+    <p class="muted">
+        Showing all jobs.
+        {% if selected_resume %}
+            <a href="{% url 'job_list' %}?resume_id={{ selected_resume.id }}">Show matching jobs</a>
+        {% endif %}
+    </p>
+{% endif %}
 <div class="card">
     <form method="get" class="filter-form" id="filter-form">
+        {% if selected_resume and not show_all %}
+            <input type="hidden" name="resume_id" value="{{ selected_resume.id }}">
+        {% endif %}
+        {% if show_all %}
+            <input type="hidden" name="show_all" value="1">
+        {% endif %}
         <input type="text" name="q" placeholder="Search title or company" value="{{ query }}">
         <input list="city-list" id="location-input" name="location" placeholder="Location" value="{{ location }}">
         <datalist id="city-list">
@@ -48,7 +67,11 @@
             </div>
         </div>
     {% empty %}
-        <p>No jobs found.</p>
+        {% if match_filter_active %}
+            <p>No matching jobs found for your resume.</p>
+        {% else %}
+            <p>No jobs found.</p>
+        {% endif %}
     {% endfor %}
 </div>
 {% endblock %}

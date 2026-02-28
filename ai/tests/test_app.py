@@ -30,7 +30,7 @@ def test_recommend_jobs(client):
             {"id": 1, "title": "Data Analyst", "description": "SQL and Python required", "required_skills": ["python", "sql"]},
             {"id": 2, "title": "Designer", "description": "Figma and UX", "required_skills": ["figma"]}
         ],
-        "top_n": 1
+        "top_n": 5
     }
     response = client.post("/recommend_jobs", json=payload)
     assert response.status_code == 200

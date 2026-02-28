@@ -1,5 +1,8 @@
 ﻿import json
+import logging
 from collections import Counter
+from datetime import timedelta
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib import messages
@@ -17,8 +20,15 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.views.decorators.http import require_POST
 
-from .forms import UserRegistrationForm, ResumeUploadForm, JobForm, ProfileUpdateForm, CustomPasswordChangeForm
-from .models import Resume, Job, MatchResult, Recommendation, SavedJob, UserProfile
+from .forms import (
+    UserRegistrationForm,
+    ResumeUploadForm,
+    JobForm,
+    ProfileUpdateForm,
+    ProfilePhotoForm,
+    CustomPasswordChangeForm,
+)
+from .models import Resume, Job, MatchResult, Recommendation, SavedJob, UserProfile, JobRefreshState
 from .services import (
     parse_resume,
     match_resume_job,
@@ -28,8 +38,122 @@ from .services import (
     AIServiceError,
 )
 
+GENERIC_SKILL_TAGS = {"general", "remote"}
+DAILY_REFRESH_STATE_KEY = "daily_jobs_auto_refresh"
+logger = logging.getLogger(__name__)
+
+
+def _normalized_skill_set(skills):
+    normalized = set()
+    for skill in skills or []:
+        if not isinstance(skill, str):
+            continue
+        value = skill.strip().lower()
+        if value and value not in GENERIC_SKILL_TAGS:
+            normalized.add(value)
+    return normalized
+
+
+def _is_resume_job_match(resume_skills, job_skills):
+    if not resume_skills or not job_skills:
+        return False
+    overlap_count = len(resume_skills.intersection(job_skills))
+    if len(job_skills) == 1:
+        return overlap_count == 1
+    return overlap_count >= 2
+
+
+def _merge_jobs_into_database(fetched_jobs, default_location):
+    api_jobs_added = 0
+    api_jobs_updated = 0
+    refresh_time = timezone.now()
+
+    for job_data in fetched_jobs:
+        if not job_data.get("title") or not job_data.get("company"):
+            continue
+
+        defaults = {
+            "level": job_data.get("level", "Mid"),
+            "salary_range": job_data.get("salary_range", ""),
+            "description": job_data.get("description", "No description available"),
+            "required_skills": job_data.get("required_skills", []),
+            "apply_link": job_data.get("apply_link", ""),
+            "created_at": refresh_time,
+        }
+        _, created = Job.objects.update_or_create(
+            title=job_data["title"],
+            company=job_data["company"],
+            location=(job_data.get("location") or default_location or "Remote"),
+            defaults=defaults,
+        )
+        if created:
+            api_jobs_added += 1
+        else:
+            api_jobs_updated += 1
+
+    return api_jobs_added, api_jobs_updated
+
+
+def _refresh_jobs_daily_if_needed():
+    if not getattr(settings, "AUTO_DAILY_JOB_REFRESH", True):
+        return
+
+    now = timezone.now()
+    refresh_window = timedelta(hours=max(1, int(getattr(settings, "AUTO_DAILY_JOB_REFRESH_HOURS", 24))))
+    retry_window = timedelta(minutes=max(5, int(getattr(settings, "AUTO_DAILY_JOB_REFRESH_RETRY_MINUTES", 60))))
+
+    state, _ = JobRefreshState.objects.get_or_create(key=DAILY_REFRESH_STATE_KEY)
+
+    if state.last_success_at and (now - state.last_success_at) < refresh_window:
+        return
+    if state.last_attempted_at and (now - state.last_attempted_at) < retry_window:
+        return
+
+    state.last_attempted_at = now
+    state.save()
+
+    api_query = (getattr(settings, "AUTO_DAILY_JOB_QUERY", "software developer") or "software developer").strip()
+    api_location = (getattr(settings, "AUTO_DAILY_JOB_LOCATION", "India") or "India").strip()
+    api_limit = max(5, min(int(getattr(settings, "AUTO_DAILY_JOB_LIMIT", 100)), 150))
+    require_location_match = getattr(settings, "AUTO_DAILY_JOB_REQUIRE_LOCATION_MATCH", True)
+
+    try:
+        fetched_jobs, api_source = fetch_jobs_auto(
+            query=api_query,
+            location=api_location,
+            limit=api_limit,
+        )
+
+        if require_location_match:
+            location_key = api_location.lower()
+            fetched_jobs = [
+                row for row in fetched_jobs
+                if location_key in (row.get("location", "") or "").lower()
+            ]
+
+        added, updated = _merge_jobs_into_database(fetched_jobs, api_location)
+        state.last_success_at = timezone.now()
+        state.last_source = api_source
+        state.last_error = ""
+        state.save()
+        logger.info(
+            "Daily jobs refresh complete. Source=%s Added=%s Updated=%s",
+            api_source,
+            added,
+            updated,
+        )
+    except AIServiceError as exc:
+        state.last_error = str(exc)[:1000]
+        state.save()
+        logger.warning("Daily jobs refresh failed: %s", exc)
+    except Exception as exc:
+        state.last_error = str(exc)[:1000]
+        state.save()
+        logger.exception("Unexpected error during daily jobs refresh: %s", exc)
+
 
 def home(request):
+    _refresh_jobs_daily_if_needed()
     return render(request, "home.html")
 
 
@@ -96,10 +220,17 @@ def profile(request):
     saved_count = SavedJob.objects.filter(user=request.user).count()
     
     profile_form = None
+    photo_form = None
     password_form = None
     
     if request.method == "POST":
-        if "update_profile" in request.POST:
+        if "update_photo" in request.POST:
+            photo_form = ProfilePhotoForm(request.POST, request.FILES, instance=user_profile)
+            if photo_form.is_valid():
+                photo_form.save()
+                messages.success(request, "Profile photo updated successfully.")
+                return redirect("profile")
+        elif "update_profile" in request.POST:
             profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=user_profile)
             if profile_form.is_valid():
                 profile_form.save()
@@ -114,12 +245,15 @@ def profile(request):
     
     if not profile_form:
         profile_form = ProfileUpdateForm(instance=user_profile)
+    if not photo_form:
+        photo_form = ProfilePhotoForm(instance=user_profile)
     if not password_form:
         password_form = CustomPasswordChangeForm(request.user)
     
     context = {
         "user_profile": user_profile,
         "profile_form": profile_form,
+        "photo_form": photo_form,
         "password_form": password_form,
         "resumes": resumes,
         "saved_count": saved_count,
@@ -134,6 +268,7 @@ def resume_upload(request):
         if form.is_valid():
             resume = form.save(commit=False)
             resume.user = request.user
+            resume.original_filename = Path(request.FILES["original_file"].name).name
             resume.save()
 
             file_path = resume.original_file.path
@@ -181,12 +316,17 @@ def resume_json_download(request, pk):
 
 
 def job_list(request):
+    _refresh_jobs_daily_if_needed()
     query = request.GET.get("q", "")
     location = request.GET.get("location", "")
     level = request.GET.get("level", "")
+    resume_id = request.GET.get("resume_id")
+    show_all = request.GET.get("show_all") == "1"
 
     # Show freshly imported jobs first, then stable order for same timestamps.
     jobs = Job.objects.all().order_by("-created_at", "title")
+    selected_resume = None
+    match_filter_active = False
 
     if query:
         jobs = jobs.filter(Q(title__icontains=query) | Q(company__icontains=query))
@@ -221,11 +361,33 @@ def job_list(request):
     if level:
         jobs = jobs.filter(level__icontains=level)
 
+    if request.user.is_authenticated:
+        user_resumes = Resume.objects.filter(user=request.user).order_by("-uploaded_at")
+        if resume_id:
+            selected_resume = get_object_or_404(user_resumes, pk=resume_id)
+        else:
+            selected_resume = user_resumes.first()
+
+    if selected_resume and not show_all:
+        resume_skills = _normalized_skill_set((selected_resume.extracted_json or {}).get("skills", []))
+        if resume_skills:
+            jobs = [
+                job for job in jobs
+                if _is_resume_job_match(resume_skills, _normalized_skill_set(job.required_skills))
+            ]
+        else:
+            jobs = []
+        match_filter_active = True
+
     return render(request, "jobs_list.html", {
         "jobs": jobs,
         "query": query,
         "location": location,
-        "level": level
+        "level": level,
+        "selected_resume": selected_resume,
+        "match_filter_active": match_filter_active,
+        "show_all": show_all,
+        "matching_jobs_count": len(jobs) if match_filter_active else None,
     })
 
 
@@ -350,6 +512,7 @@ def match_result_detail(request, pk):
 
 @login_required
 def recommendations(request):
+    _refresh_jobs_daily_if_needed()
     resumes = Resume.objects.filter(user=request.user).order_by("-uploaded_at")
     resume_id = request.GET.get("resume_id")
     api_query = (request.GET.get("api_query") or "software developer").strip() or "software developer"
@@ -371,6 +534,7 @@ def recommendations(request):
 
     if resume_id:
         selected_resume = get_object_or_404(Resume, pk=resume_id, user=request.user)
+        resume_skills = _normalized_skill_set((selected_resume.extracted_json or {}).get("skills", []))
 
         if include_api:
             try:
@@ -386,29 +550,7 @@ def recommendations(request):
                     if location_key in (row.get("location", "") or "").lower()
                 ]
 
-                refresh_time = timezone.now()
-                for job_data in fetched_jobs:
-                    if not job_data.get("title") or not job_data.get("company"):
-                        continue
-
-                    defaults = {
-                        "level": job_data.get("level", "Mid"),
-                        "salary_range": job_data.get("salary_range", ""),
-                        "description": job_data.get("description", "No description available"),
-                        "required_skills": job_data.get("required_skills", []),
-                        "apply_link": job_data.get("apply_link", ""),
-                        "created_at": refresh_time,
-                    }
-                    _, created = Job.objects.update_or_create(
-                        title=job_data["title"],
-                        company=job_data["company"],
-                        location=job_data.get("location", api_location),
-                        defaults=defaults,
-                    )
-                    if created:
-                        api_jobs_added += 1
-                    else:
-                        api_jobs_updated += 1
+                api_jobs_added, api_jobs_updated = _merge_jobs_into_database(fetched_jobs, api_location)
 
                 if api_source:
                     messages.info(
@@ -447,15 +589,25 @@ def recommendations(request):
             ai_result = recommend_jobs(selected_resume.raw_text, jobs_payload, top_n=10)
             Recommendation.objects.filter(resume=selected_resume).delete()
 
+            jobs_by_id = Job.objects.in_bulk(
+                [rec.get("job_id") for rec in ai_result.get("recommendations", []) if rec.get("job_id")]
+            )
+
             for rec in ai_result.get("recommendations", []):
-                job = Job.objects.filter(pk=rec.get("job_id")).first()
-                if job:
-                    Recommendation.objects.create(
-                        resume=selected_resume,
-                        job=job,
-                        score=rec.get("score", 0),
-                        reason=rec.get("reason", "")
-                    )
+                job = jobs_by_id.get(rec.get("job_id"))
+                if not job:
+                    continue
+
+                job_skills = _normalized_skill_set(job.required_skills)
+                if not _is_resume_job_match(resume_skills, job_skills):
+                    continue
+
+                Recommendation.objects.create(
+                    resume=selected_resume,
+                    job=job,
+                    score=rec.get("score", 0),
+                    reason=rec.get("reason", "")
+                )
         except AIServiceError as exc:
             messages.error(request, f"AI service error: {exc}")
 
@@ -561,3 +713,5 @@ def admin_job_delete(request, pk):
     job.delete()
     messages.success(request, "Job deleted.")
     return redirect("admin_job_list")
+
+

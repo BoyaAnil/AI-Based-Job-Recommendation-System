@@ -7,13 +7,31 @@
     <!-- Profile Header with Photo -->
     <div class="card profile-header">
         <div class="profile-photo-section">
-            {% if user_profile.profile_photo %}
-                <img src="{{ user_profile.profile_photo.url }}" alt="{{ user.username }}" class="profile-photo">
-            {% else %}
-                <div class="profile-photo-placeholder">
-                    <span>📷</span>
-                </div>
-            {% endif %}
+            <form method="post" enctype="multipart/form-data" id="profile-photo-form" class="profile-photo-form">
+                {% csrf_token %}
+                <input type="hidden" name="update_photo" value="1">
+                <input type="file" id="profile-photo-input" name="profile_photo" accept="image/*" hidden>
+                <button
+                    type="button"
+                    id="photo-trigger"
+                    class="photo-trigger"
+                    aria-label="Add or update profile photo"
+                    title="Add or update profile photo"
+                >
+                    {% if user_profile.profile_photo %}
+                        <img src="{{ user_profile.profile_photo.url }}" alt="{{ user.username }}" class="profile-photo">
+                    {% else %}
+                        <div class="profile-photo-placeholder">
+                            <span>📷</span>
+                        </div>
+                    {% endif %}
+                    <span class="photo-edit-badge" aria-hidden="true">📷</span>
+                </button>
+                <p class="photo-help">Click the camera to add or update your photo</p>
+                {% if photo_form.profile_photo.errors %}
+                    <span class="form-error">{{ photo_form.profile_photo.errors.0 }}</span>
+                {% endif %}
+            </form>
         </div>
         <div class="profile-info-section">
             <h3>{{ user.first_name }} {{ user.last_name }}</h3>
@@ -188,7 +206,7 @@
                 <div class="grid">
                     {% for resume in resumes %}
                         <div class="card resume-card">
-                            <p><strong>📄 Resume {{ forloop.counter }}</strong></p>
+                            <p><strong>📄 {{ resume.display_name }}</strong></p>
                             <p><small>Uploaded: {{ resume.uploaded_at|date:"M d, Y H:i" }}</small></p>
                             {% if resume.raw_text %}
                                 <p><small>✓ Parsed</small></p>
@@ -241,6 +259,27 @@
         justify-content: center;
     }
 
+    .profile-photo-form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .photo-trigger {
+        position: relative;
+        border: none;
+        background: none;
+        padding: 0;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    .photo-trigger:focus-visible {
+        outline: 2px solid #667eea;
+        outline-offset: 4px;
+    }
+
     .profile-photo {
         width: 150px;
         height: 150px;
@@ -259,6 +298,29 @@
         justify-content: center;
         font-size: 60px;
         color: white;
+    }
+
+    .photo-edit-badge {
+        position: absolute;
+        right: 4px;
+        bottom: 4px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .photo-help {
+        margin: 0;
+        font-size: 12px;
+        color: #666;
+        text-align: center;
     }
 
     .profile-info-section h3 {
@@ -440,6 +502,22 @@
 </style>
 
 <script>
+    const photoTrigger = document.getElementById('photo-trigger');
+    const photoInput = document.getElementById('profile-photo-input');
+    const photoForm = document.getElementById('profile-photo-form');
+
+    if (photoTrigger && photoInput && photoForm) {
+        photoTrigger.addEventListener('click', function () {
+            photoInput.click();
+        });
+
+        photoInput.addEventListener('change', function () {
+            if (photoInput.files && photoInput.files.length > 0) {
+                photoForm.submit();
+            }
+        });
+    }
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabName = this.getAttribute('data-tab');

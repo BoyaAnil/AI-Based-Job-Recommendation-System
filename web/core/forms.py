@@ -113,6 +113,12 @@ class ProfileUpdateForm(forms.ModelForm):
         return profile
 
 
+class ProfilePhotoForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ("profile_photo",)
+
+
 class CustomPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(
         label="Current Password",

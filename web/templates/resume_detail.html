@@ -5,12 +5,13 @@
 <div class="resume-layout">
     <div class="resume-left">
         <div class="card">
+            <p><strong>File:</strong> {{ resume.display_name }}</p>
             <p><strong>Name:</strong> {{ extracted.name|default:"" }}</p>
             <p><strong>Email:</strong> {{ extracted.email|default:"" }}</p>
             <p><strong>Phone:</strong> {{ extracted.phone|default:"" }}</p>
             <div class="actions">
                 <a class="btn secondary" href="{% url 'resume_json_download' resume.id %}">Download JSON</a>
-                <a class="btn" href="{% url 'job_list' %}">Browse Jobs</a>
+                <a class="btn" href="{% url 'job_list' %}?resume_id={{ resume.id }}">Browse Matching Jobs</a>
             </div>
         </div>
 

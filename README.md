@@ -93,6 +93,21 @@ python manage.py fetch_jobs --source jsearch --query "python developer" --locati
 ```
 
 ## Daily Auto Refresh (Windows)
+The web app now supports built-in once-per-day auto refresh through AI when users open pages (Home, Jobs, or Recommendations).  
+Configure in `web/.env`:
+
+```bash
+AUTO_DAILY_JOB_REFRESH=true
+AUTO_DAILY_JOB_REFRESH_HOURS=24
+AUTO_DAILY_JOB_REFRESH_RETRY_MINUTES=60
+AUTO_DAILY_JOB_QUERY=software developer
+AUTO_DAILY_JOB_LOCATION=India
+AUTO_DAILY_JOB_LIMIT=100
+AUTO_DAILY_JOB_REQUIRE_LOCATION_MATCH=true
+```
+
+You can still use the Windows scheduled task below if you want refreshes at an exact clock time.
+
 The repo includes:
 - `web/scripts/daily_job_refresh.bat`
 

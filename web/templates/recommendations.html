@@ -9,23 +9,23 @@
             <option value="">-- Choose --</option>
             {% for resume in resumes %}
                 <option value="{{ resume.id }}" {% if selected_resume and resume.id == selected_resume.id %}selected{% endif %}>
-                    Resume {{ resume.id }} ({{ resume.uploaded_at|date:"Y-m-d" }})
+                    {{ resume.display_name }} ({{ resume.uploaded_at|date:"Y-m-d" }})
                 </option>
             {% endfor %}
         </select>
         <div class="form-row mt-3">
             <div class="form-group">
-                <label for="api_query">API Query</label>
+                <label for="api_query">Job Role</label>
                 <input type="text" id="api_query" name="api_query" value="{{ api_query|default:'software developer' }}">
             </div>
             <div class="form-group">
-                <label for="api_location">API Location</label>
+                <label for="api_location">Location</label>
                 <input type="text" id="api_location" name="api_location" value="{{ api_location|default:'India' }}">
             </div>
         </div>
         <div class="form-row mt-3">
             <div class="form-group">
-                <label for="api_limit">API Limit</label>
+                <label for="api_limit">Limit</label>
                 <input type="number" id="api_limit" name="api_limit" min="5" max="150" value="{{ api_limit|default:50 }}">
             </div>
             <div class="form-group">
@@ -41,7 +41,7 @@
 </div>
 
 {% if selected_resume %}
-    <h3>Results for Resume {{ selected_resume.id }}</h3>
+    <h3>Results for {{ selected_resume.display_name }}</h3>
     {% if include_api %}
         <p class="muted">
             API source used: {{ api_source|default:"none" }}.
@@ -66,7 +66,7 @@
                 </div>
             </div>
         {% empty %}
-            <p>No recommendations yet.</p>
+            <p>No matching jobs found for this resume yet.</p>
         {% endfor %}
     </div>
 {% endif %}

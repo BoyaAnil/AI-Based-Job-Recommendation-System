@@ -1,16 +1,42 @@
-﻿from django.conf import settings
+﻿import re
+from pathlib import Path
+
+from django.conf import settings
 from django.db import models
+
+STORAGE_SUFFIX_RE = re.compile(r"^(?P<base>.+)_[A-Za-z0-9]{7}$")
+
+
+def _strip_storage_suffix(file_name: str) -> str:
+    base_name = Path(file_name).name
+    stem = Path(base_name).stem
+    suffix = Path(base_name).suffix
+    match = STORAGE_SUFFIX_RE.match(stem)
+    if match:
+        stem = match.group("base")
+    return f"{stem}{suffix}"
 
 
 class Resume(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     original_file = models.FileField(upload_to="resumes/")
+    original_filename = models.CharField(max_length=255, blank=True, default="")
     uploaded_at = models.DateTimeField(auto_now_add=True)
     raw_text = models.TextField(blank=True)
     extracted_json = models.JSONField(default=dict, blank=True)
 
+    @property
+    def display_name(self) -> str:
+        if self.original_filename:
+            if self.original_file and self.original_filename == Path(self.original_file.name).name:
+                return _strip_storage_suffix(self.original_filename)
+            return self.original_filename
+        if self.original_file:
+            return _strip_storage_suffix(self.original_file.name)
+        return f"Resume {self.id}"
+
     def __str__(self) -> str:
-        return f"Resume {self.id} for {self.user.username}"
+        return f"{self.display_name} for {self.user.username}"
 
 
 class Job(models.Model):
@@ -63,6 +89,18 @@ class SavedJob(models.Model):
 
     def __str__(self) -> str:
         return f"Saved {self.job.title} for {self.user.username}"
+
+
+class JobRefreshState(models.Model):
+    key = models.CharField(max_length=64, unique=True)
+    last_attempted_at = models.DateTimeField(null=True, blank=True)
+    last_success_at = models.DateTimeField(null=True, blank=True)
+    last_source = models.CharField(max_length=32, blank=True, default="")
+    last_error = models.TextField(blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"Job refresh state ({self.key})"
 
 
 class UserProfile(models.Model):
