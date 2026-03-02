@@ -69,6 +69,43 @@ function getCookie(name) {
     return cookieValue;
 }
 
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderList(items, emptyText = 'None') {
+    if (!Array.isArray(items) || !items.length) {
+        return emptyText;
+    }
+    return items.map(item => escapeHtml(item)).join(', ');
+}
+
+function renderBulletList(items) {
+    if (!Array.isArray(items) || !items.length) {
+        return '<li>None</li>';
+    }
+    return items.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+}
+
+function renderScoreBreakdown(rows) {
+    if (!Array.isArray(rows) || !rows.length) {
+        return '<p><strong>ATS Breakdown:</strong> Not available</p>';
+    }
+    const listItems = rows.map(row => {
+        const label = escapeHtml(row.label || row.key || 'Section');
+        const score = Number.isFinite(Number(row.score)) ? Number(row.score) : 0;
+        const weighted = Number.isFinite(Number(row.weighted_score)) ? Number(row.weighted_score) : 0;
+        const weight = Number.isFinite(Number(row.weight)) ? Number(row.weight) : 0;
+        return `<li>${label}: ${score}/100 (${weighted}/${weight})</li>`;
+    }).join('');
+    return `<p><strong>ATS Breakdown:</strong></p><ul>${listItems}</ul>`;
+}
+
 const matchBtn = document.getElementById('match-btn');
 if (matchBtn) {
     matchBtn.addEventListener('click', async () => {
@@ -91,14 +128,27 @@ if (matchBtn) {
             return;
         }
 
+        const atsScore = Number.isFinite(Number(data.ats_score)) ? Number(data.ats_score) : Number(data.score || 0);
+        const matchedSkills = Array.isArray(data.matched_skills) ? data.matched_skills : [];
+        const missingSkills = Array.isArray(data.missing_skills) ? data.missing_skills : [];
+        const matchedKeywords = Array.isArray(data.matched_keywords) ? data.matched_keywords : [];
+        const missingKeywords = Array.isArray(data.missing_keywords) ? data.missing_keywords : [];
+        const mistakes = Array.isArray(data.mistakes) ? data.mistakes : [];
+        const tips = Array.isArray(data.improvement_tips) ? data.improvement_tips : [];
         const matchLink = data.match_url ? `<a class=\"btn secondary\" href=\"${data.match_url}\">Open Match Page</a>` : '';
         resultBox.innerHTML = `
             <div class="card">
-                <h4>Match Score: ${data.score}</h4>
-                <p><strong>Matched Skills:</strong> ${data.matched_skills.join(', ') || 'None'}</p>
-                <p><strong>Missing Skills:</strong> ${data.missing_skills.join(', ') || 'None'}</p>
-                <p>${data.summary}</p>
-                <ul>${data.improvement_tips.map(tip => `<li>${tip}</li>`).join('')}</ul>
+                <h4>ATS Score: ${atsScore}/100</h4>
+                <p><strong>Matched Skills:</strong> ${renderList(matchedSkills)}</p>
+                <p><strong>Missing Skills:</strong> ${renderList(missingSkills)}</p>
+                <p><strong>Matched Keywords:</strong> ${renderList(matchedKeywords)}</p>
+                <p><strong>Missing Keywords:</strong> ${renderList(missingKeywords)}</p>
+                <p>${escapeHtml(data.summary || '')}</p>
+                ${renderScoreBreakdown(data.score_breakdown)}
+                <p><strong>Mistakes Found:</strong></p>
+                <ul>${renderBulletList(mistakes)}</ul>
+                <p><strong>Suggestions:</strong></p>
+                <ul>${renderBulletList(tips)}</ul>
                 ${matchLink}
             </div>
         `;

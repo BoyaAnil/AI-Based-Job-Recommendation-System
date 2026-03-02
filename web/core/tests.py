@@ -9,7 +9,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from . import views
-from .models import Resume, Job, Recommendation
+from .models import Resume, Job, Recommendation, MatchResult
 
 
 @override_settings(AUTO_DAILY_JOB_REFRESH=False)
@@ -49,8 +49,15 @@ class CoreViewsTests(TestCase):
     def test_match_job(self, mock_match_job):
         mock_match_job.return_value = {
             "score": 80,
+            "ats_score": 80,
             "matched_skills": ["python"],
             "missing_skills": ["django"],
+            "matched_keywords": ["python", "backend"],
+            "missing_keywords": ["django"],
+            "score_breakdown": [
+                {"key": "keywords_match", "label": "Keywords Match", "weight": 35, "score": 80, "weighted_score": 28}
+            ],
+            "mistakes": ["Add missing role skills: django."],
             "summary": "Good match",
             "improvement_tips": ["Add Django"]
         }
@@ -76,6 +83,45 @@ class CoreViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["score"], 80)
+        self.assertIn("mistakes", data)
+        match_record = MatchResult.objects.get(id=data["match_id"])
+        self.assertEqual(match_record.analysis_details.get("ats_score"), 80)
+        self.assertTrue(match_record.analysis_details.get("score_breakdown"))
+
+    @patch("core.views.match_resume_job")
+    def test_resume_ats_check(self, mock_match_job):
+        mock_match_job.return_value = {
+            "score": 76,
+            "ats_score": 76,
+            "matched_skills": ["python", "sql"],
+            "missing_skills": ["django"],
+            "matched_keywords": ["python"],
+            "missing_keywords": ["django"],
+            "score_breakdown": [
+                {"key": "keywords_match", "label": "Keywords Match", "weight": 35, "score": 70, "weighted_score": 24.5}
+            ],
+            "mistakes": ["Add missing role skills: django."],
+            "summary": "ATS score 76/100.",
+            "improvement_tips": ["Add Django project experience."],
+        }
+        resume = Resume.objects.create(
+            user=self.user,
+            original_file=SimpleUploadedFile("resume.pdf", b"dummy"),
+            raw_text="Python SQL resume text",
+        )
+        response = self.client.post(
+            reverse("resume_ats_check", args=[resume.id]),
+            data=json.dumps({
+                "job_title": "Backend Developer",
+                "job_description": "Need python sql django",
+                "required_skills": "python, sql, django",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["ats_score"], 76)
+        self.assertIn("mistakes", data)
 
     def test_toggle_saved_job(self):
         job = Job.objects.create(

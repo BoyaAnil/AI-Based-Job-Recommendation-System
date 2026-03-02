@@ -4,9 +4,44 @@
 <div class="card">
     <h2>Match Results</h2>
     <p><strong>Job:</strong> {{ match.job.title }} at {{ match.job.company }}</p>
-    <p><strong>Score:</strong> {{ match.score }}</p>
+    {% with details=match.analysis_details %}
+    <p><strong>ATS Score:</strong> {{ details.ats_score|default:match.score }}/100</p>
     <p><strong>Matched Skills:</strong> {{ match.matched_skills|join:", " }}</p>
     <p><strong>Missing Skills:</strong> {{ match.missing_skills|join:", " }}</p>
+    {% if details.matched_keywords %}
+    <p><strong>Matched Keywords:</strong> {{ details.matched_keywords|join:", " }}</p>
+    {% endif %}
+    {% if details.missing_keywords %}
+    <p><strong>Missing Keywords:</strong> {{ details.missing_keywords|join:", " }}</p>
+    {% endif %}
+    {% if details.summary %}
+    <p>{{ details.summary }}</p>
+    {% endif %}
+    {% if details.score_breakdown %}
+    <p><strong>ATS Breakdown:</strong></p>
+    <ul>
+        {% for section in details.score_breakdown %}
+        <li>{{ section.label }}: {{ section.score }}/100 ({{ section.weighted_score }}/{{ section.weight }})</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% if details.mistakes %}
+    <p><strong>Mistakes Found:</strong></p>
+    <ul>
+        {% for mistake in details.mistakes %}
+        <li>{{ mistake }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% if details.improvement_tips %}
+    <p><strong>Suggestions:</strong></p>
+    <ul>
+        {% for tip in details.improvement_tips %}
+        <li>{{ tip }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
     <p><strong>Created:</strong> {{ match.created_at }}</p>
     <a class="btn secondary" href="{% url 'job_detail' match.job.id %}">Back to Job</a>
 </div>

@@ -60,6 +60,7 @@ class MatchResult(models.Model):
     score = models.IntegerField()
     matched_skills = models.JSONField(default=list, blank=True)
     missing_skills = models.JSONField(default=list, blank=True)
+    analysis_details = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:

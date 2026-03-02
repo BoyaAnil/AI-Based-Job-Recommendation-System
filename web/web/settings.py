@@ -97,12 +97,19 @@ TEMPLATES = [
 WSGI_APPLICATION = "web.wsgi.application"
 ASGI_APPLICATION = "web.asgi.application"
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-    )
-}
+database_url = os.getenv("DATABASE_URL", "").strip()
+if database_url:
+    default_db = dj_database_url.parse(database_url, conn_max_age=600)
+else:
+    default_db = dj_database_url.parse(f"sqlite:///{BASE_DIR / 'db.sqlite3'}", conn_max_age=600)
+
+# Keep SQLite path stable even when DATABASE_URL contains a relative path.
+if default_db.get("ENGINE") == "django.db.backends.sqlite3":
+    db_name = str(default_db.get("NAME", "")).strip()
+    if db_name and not Path(db_name).is_absolute():
+        default_db["NAME"] = str((BASE_DIR / db_name).resolve())
+
+DATABASES = {"default": default_db}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

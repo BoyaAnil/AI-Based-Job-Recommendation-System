@@ -20,7 +20,11 @@ def test_match(client):
     assert response.status_code == 200
     data = response.get_json()
     assert 0 <= data["score"] <= 100
+    assert data["score"] == data["ats_score"]
     assert "python" in data["matched_skills"]
+    assert isinstance(data["score_breakdown"], list)
+    assert any(section["key"] == "keywords_match" for section in data["score_breakdown"])
+    assert "mistakes" in data
 
 
 def test_recommend_jobs(client):

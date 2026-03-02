@@ -15,6 +15,22 @@
             </div>
         </div>
 
+        <div class="card">
+            <h3>ATS Score Checker</h3>
+            <p class="muted">Paste a job description to calculate ATS score and mistakes for this resume.</p>
+            <label for="ats-job-title"><strong>Job Title</strong> (optional)</label>
+            <input id="ats-job-title" type="text" placeholder="Example: Python Developer" style="width: 100%; margin: 8px 0 12px; padding: 10px;">
+
+            <label for="ats-job-description"><strong>Job Description</strong> *</label>
+            <textarea id="ats-job-description" rows="8" placeholder="Paste full job description here..." style="width: 100%; margin: 8px 0 12px; padding: 10px;"></textarea>
+
+            <label for="ats-required-skills"><strong>Required Skills</strong> (optional, comma-separated)</label>
+            <input id="ats-required-skills" type="text" placeholder="python, sql, django" style="width: 100%; margin: 8px 0 12px; padding: 10px;">
+
+            <button class="btn" id="ats-check-btn">Check ATS Score</button>
+            <div id="ats-check-result" class="match-result" style="margin-top: 12px;"></div>
+        </div>
+
         <section class="grid">
             <div class="card">
                 <h3>Resume Insights</h3>
@@ -72,4 +88,118 @@
     </aside>
 
 </div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderList(items, emptyText = 'None') {
+    if (!Array.isArray(items) || !items.length) {
+        return emptyText;
+    }
+    return items.map(item => escapeHtml(item)).join(', ');
+}
+
+function renderBulletList(items) {
+    if (!Array.isArray(items) || !items.length) {
+        return '<li>None</li>';
+    }
+    return items.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+}
+
+function renderScoreBreakdown(rows) {
+    if (!Array.isArray(rows) || !rows.length) {
+        return '<p><strong>ATS Breakdown:</strong> Not available</p>';
+    }
+    const listItems = rows.map(row => {
+        const label = escapeHtml(row.label || row.key || 'Section');
+        const score = Number.isFinite(Number(row.score)) ? Number(row.score) : 0;
+        const weighted = Number.isFinite(Number(row.weighted_score)) ? Number(row.weighted_score) : 0;
+        const weight = Number.isFinite(Number(row.weight)) ? Number(row.weight) : 0;
+        return `<li>${label}: ${score}/100 (${weighted}/${weight})</li>`;
+    }).join('');
+    return `<p><strong>ATS Breakdown:</strong></p><ul>${listItems}</ul>`;
+}
+
+const atsBtn = document.getElementById('ats-check-btn');
+if (atsBtn) {
+    atsBtn.addEventListener('click', async () => {
+        const jobTitle = document.getElementById('ats-job-title').value.trim();
+        const jobDescription = document.getElementById('ats-job-description').value.trim();
+        const requiredSkills = document.getElementById('ats-required-skills').value.trim();
+        const resultBox = document.getElementById('ats-check-result');
+
+        if (!jobDescription) {
+            resultBox.innerHTML = '<p>Please paste a job description.</p>';
+            return;
+        }
+
+        resultBox.textContent = 'Calculating ATS score...';
+
+        const response = await fetch('{% url "resume_ats_check" resume.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                job_title: jobTitle,
+                job_description: jobDescription,
+                required_skills: requiredSkills
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            resultBox.textContent = data.error || 'Failed to calculate ATS score.';
+            return;
+        }
+
+        const atsScore = Number.isFinite(Number(data.ats_score)) ? Number(data.ats_score) : Number(data.score || 0);
+        const matchedSkills = Array.isArray(data.matched_skills) ? data.matched_skills : [];
+        const missingSkills = Array.isArray(data.missing_skills) ? data.missing_skills : [];
+        const matchedKeywords = Array.isArray(data.matched_keywords) ? data.matched_keywords : [];
+        const missingKeywords = Array.isArray(data.missing_keywords) ? data.missing_keywords : [];
+        const mistakes = Array.isArray(data.mistakes) ? data.mistakes : [];
+        const tips = Array.isArray(data.improvement_tips) ? data.improvement_tips : [];
+
+        resultBox.innerHTML = `
+            <div class="card">
+                <h4>ATS Score: ${atsScore}/100</h4>
+                <p><strong>Matched Skills:</strong> ${renderList(matchedSkills)}</p>
+                <p><strong>Missing Skills:</strong> ${renderList(missingSkills)}</p>
+                <p><strong>Matched Keywords:</strong> ${renderList(matchedKeywords)}</p>
+                <p><strong>Missing Keywords:</strong> ${renderList(missingKeywords)}</p>
+                <p>${escapeHtml(data.summary || '')}</p>
+                ${renderScoreBreakdown(data.score_breakdown)}
+                <p><strong>Mistakes Found:</strong></p>
+                <ul>${renderBulletList(mistakes)}</ul>
+                <p><strong>Suggestions:</strong></p>
+                <ul>${renderBulletList(tips)}</ul>
+            </div>
+        `;
+    });
+}
+</script>
 {% endblock %}

@@ -48,6 +48,7 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("resumes/upload/", views.resume_upload, name="resume_upload"),
     path("resumes/<int:pk>/", views.resume_detail, name="resume_detail"),
+    path("resumes/<int:pk>/ats-check/", views.resume_ats_check, name="resume_ats_check"),
     path("resumes/<int:pk>/download/", views.resume_json_download, name="resume_json_download"),
     path("jobs/", views.job_list, name="job_list"),
     path("jobs/<int:pk>/", views.job_detail, name="job_detail"),

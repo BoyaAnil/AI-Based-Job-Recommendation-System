@@ -308,6 +308,71 @@ def resume_detail(request, pk):
 
 
 @login_required
+@require_POST
+def resume_ats_check(request, pk):
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+
+    if request.content_type == "application/json":
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except json.JSONDecodeError:
+            return HttpResponseBadRequest("Invalid JSON")
+    else:
+        payload = request.POST
+
+    job_description = (payload.get("job_description") or "").strip()
+    if not job_description:
+        return HttpResponseBadRequest("job_description is required")
+
+    job_title = (payload.get("job_title") or "Target Role").strip() or "Target Role"
+    required_skills_raw = payload.get("required_skills") or []
+
+    if isinstance(required_skills_raw, str):
+        required_skills = [
+            skill.strip().lower()
+            for skill in required_skills_raw.replace("\n", ",").split(",")
+            if skill.strip()
+        ]
+    elif isinstance(required_skills_raw, list):
+        required_skills = [
+            str(skill).strip().lower()
+            for skill in required_skills_raw
+            if str(skill).strip()
+        ]
+    else:
+        required_skills = []
+
+    if not (resume.raw_text or "").strip():
+        try:
+            file_path = resume.original_file.path
+            file_type = resume.original_file.name.split(".")[-1].lower()
+            parsed = parse_resume(file_path, file_type)
+            resume.raw_text = parsed.get("raw_text", "")
+            resume.extracted_json = parsed
+            resume.save()
+        except AIServiceError as exc:
+            return JsonResponse({"error": str(exc)}, status=502)
+
+    job_payload = {
+        "title": job_title,
+        "description": job_description,
+        "required_skills": required_skills,
+    }
+
+    try:
+        resume_file_type = Path(resume.original_file.name).suffix.lower().lstrip(".")
+        result = match_resume_job(
+            resume.raw_text,
+            job_payload,
+            resume_metadata={"file_type": resume_file_type},
+        )
+    except AIServiceError as exc:
+        return JsonResponse({"error": str(exc)}, status=502)
+
+    return JsonResponse(result)
+
+
+@login_required
 def resume_json_download(request, pk):
     resume = get_object_or_404(Resume, pk=pk, user=request.user)
     response = JsonResponse(resume.extracted_json or {}, json_dumps_params={"indent": 2})
@@ -441,7 +506,12 @@ def match_job(request, pk):
             return JsonResponse({"error": str(exc)}, status=502)
 
     try:
-        result = match_resume_job(resume.raw_text, job_payload)
+        resume_file_type = Path(resume.original_file.name).suffix.lower().lstrip(".")
+        result = match_resume_job(
+            resume.raw_text,
+            job_payload,
+            resume_metadata={"file_type": resume_file_type},
+        )
     except AIServiceError as exc:
         return JsonResponse({"error": str(exc)}, status=502)
 
@@ -451,6 +521,16 @@ def match_job(request, pk):
         score=result.get("score", 0),
         matched_skills=result.get("matched_skills", []),
         missing_skills=result.get("missing_skills", []),
+        analysis_details={
+            "ats_score": result.get("ats_score", result.get("score", 0)),
+            "score_breakdown": result.get("score_breakdown", []),
+            "mistakes": result.get("mistakes", []),
+            "matched_keywords": result.get("matched_keywords", []),
+            "missing_keywords": result.get("missing_keywords", []),
+            "summary": result.get("summary", ""),
+            "improvement_tips": result.get("improvement_tips", []),
+            "section_details": result.get("section_details", {}),
+        },
     )
 
     return JsonResponse({
