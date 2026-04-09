@@ -9,9 +9,12 @@
             {% if user.is_authenticated %}
                 <a class="btn" href="{% url 'resume_upload' %}">Upload Resume</a>
                 <a class="btn secondary" href="{% url 'job_list' %}">Browse Jobs</a>
+                <a class="btn secondary" href="{% url 'interview_simulator' %}">Start Interview</a>
+                <a class="btn secondary" href="{% url 'fake_job_detector' %}">Check Fake Jobs</a>
             {% else %}
                 <a class="btn" href="{% url 'register' %}">Get Started</a>
                 <a class="btn secondary" href="{% url 'login' %}">Login</a>
+                <a class="btn secondary" href="{% url 'fake_job_detector' %}">Check Fake Jobs</a>
                 <a class="btn secondary" href="{% url 'forgot_password' %}">Forgot Password</a>
             {% endif %}
         </div>
@@ -30,6 +33,14 @@
     <div class="card">
         <h3>Recommendations</h3>
         <p>Rank open roles by similarity and receive actionable improvements.</p>
+    </div>
+    <div class="card">
+        <h3>Interview Simulator</h3>
+        <p>Practice adaptive interview rounds with interruptions, stress prompts, and live scoring.</p>
+    </div>
+    <div class="card">
+        <h3>Fake Job Detection</h3>
+        <p>Check suspicious job descriptions and job links for common scam signals before you apply.</p>
     </div>
 </section>
 {% endblock %}

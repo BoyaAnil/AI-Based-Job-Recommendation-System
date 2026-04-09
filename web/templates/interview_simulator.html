@@ -1,0 +1,524 @@
+﻿{% extends 'base.html' %}
+
+{% block body_class %}interview-page{% endblock %}
+
+{% block content %}
+<section class="interview-hero">
+    <div class="interview-hero-copy">
+        <p class="interview-eyebrow">AI Interview Simulator</p>
+        <h1>Adaptive Pressure System</h1>
+        <p class="interview-hero-text">Run a role-based interview pack with 50-100+ questions, mixed response formats, adaptive pressure, and round-by-round scoring on confidence, clarity, and depth.</p>
+        <div class="interview-hero-tags">
+            <span>50-100+ role-based questions</span>
+            <span>Typing, radio, checkbox</span>
+            <span>Adaptive pressure escalation</span>
+        </div>
+    </div>
+    <div class="interview-hero-panel">
+        <div class="interview-hero-metric">
+            <strong>Role-Based Pack</strong>
+            <span>The simulator builds a larger question bank around the target role instead of looping through a few static prompts.</span>
+        </div>
+        <div class="interview-hero-metric">
+            <strong>Mixed Inputs</strong>
+            <span>Some rounds require written answers, others force faster judgment through radio or checkbox decisions.</span>
+        </div>
+        <div class="interview-hero-metric">
+            <strong>Pressure Tracking</strong>
+            <span>Difficulty rises or falls as your answers show stronger ownership, clarity, and decision quality.</span>
+        </div>
+    </div>
+</section>
+
+{% if resumes %}
+<section class="mt-4 interview-setup-shell">
+    <div class="card interview-setup-card">
+        <div class="section-head">
+            <div>
+                <p class="fraud-kicker">Session Setup</p>
+                <h2>Configure your interview pack</h2>
+            </div>
+            <p class="muted interview-setup-copy">Choose the resume and target role. The simulator will build a role-tuned pack with up to 100+ questions and a mix of typing, radio, and checkbox rounds.</p>
+        </div>
+        <div class="form-row mt-3">
+            <div class="form-group">
+                <label for="resume-id">Resume</label>
+                <select id="resume-id">
+                    {% for resume in resumes %}
+                        <option value="{{ resume.id }}" {% if selected_resume and resume.id == selected_resume.id %}selected{% endif %}>{{ resume.display_name }} ({{ resume.uploaded_at|date:"Y-m-d" }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="role-name">Target Role</label>
+                <input id="role-name" type="text" value="Software Engineer" placeholder="Backend Engineer">
+            </div>
+        </div>
+        <div class="form-row mt-3">
+            <div class="form-group">
+                <label for="company-name">Company</label>
+                <input id="company-name" type="text" placeholder="Acme Labs">
+            </div>
+            <div class="form-group">
+                <label for="focus-area">Focus</label>
+                <select id="focus-area">
+                    <option value="general">General</option>
+                    <option value="backend">Backend</option>
+                    <option value="frontend">Frontend</option>
+                    <option value="data">Data / ML</option>
+                    <option value="behavioral">Behavioral</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row mt-3 interview-form-row-tight">
+            <div class="form-group">
+                <label for="question-count">Question Pack</label>
+                <select id="question-count">
+                    <option value="50" selected>50 Questions</option>
+                    <option value="60">60 Questions</option>
+                    <option value="75">75 Questions</option>
+                    <option value="100">100 Questions</option>
+                </select>
+            </div>
+            <div class="interview-setup-note">
+                <p class="fraud-kicker">Pack Design</p>
+                <p class="muted">Every pack mixes narrative answers with faster decision rounds so the simulator can test both communication and judgment.</p>
+            </div>
+        </div>
+        <div class="button-group mt-4 interview-actions">
+            <button class="btn primary" id="start-interview-btn" type="button">Start Simulation</button>
+            <button class="btn secondary" id="reset-interview-btn" type="button">Reset Session</button>
+        </div>
+        <div id="setup-error" class="form-alert mt-3" style="display:none;"></div>
+    </div>
+
+    <aside class="card interview-side-card interview-system-card">
+        <p class="fraud-kicker">Pressure Logic</p>
+        <h3>How the simulator pushes back</h3>
+        <div class="interview-pressure-stack mt-3">
+            <div class="pressure-rule">
+                <strong>Large question bank</strong>
+                <span>The pack is generated from the selected role so the session keeps moving instead of repeating the same story.</span>
+            </div>
+            <div class="pressure-rule">
+                <strong>Mixed response modes</strong>
+                <span>Typing, radio, and checkbox rounds test communication, prioritization, and decision quality.</span>
+            </div>
+            <div class="pressure-rule">
+                <strong>Adaptive escalation</strong>
+                <span>Strong answers push the difficulty higher; weak answers trigger sharper feedback and harder stress notes.</span>
+            </div>
+        </div>
+    </aside>
+</section>
+
+<section id="interview-arena" class="mt-4 interview-arena-shell" style="display:none;">
+    <div class="card interview-command-card">
+        <div class="interview-header">
+            <div>
+                <p class="fraud-kicker">Live Interview</p>
+                <h3 id="difficulty-label">Baseline</h3>
+                <p class="muted" id="progress-label">Question 1 / 50</p>
+            </div>
+            <div class="score-pill-group">
+                <div class="risk-badge risk-low" id="overall-pill">Overall 0</div>
+            </div>
+        </div>
+        <div class="interview-score-grid mt-3">
+            <div class="score-card">
+                <span>Confidence</span>
+                <strong id="confidence-score">0</strong>
+            </div>
+            <div class="score-card">
+                <span>Clarity</span>
+                <strong id="clarity-score">0</strong>
+            </div>
+            <div class="score-card">
+                <span>Depth</span>
+                <strong id="depth-score">0</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="interview-workbench">
+        <div class="card interview-panel interview-question-card">
+            <div class="interview-panel-head">
+                <div>
+                    <p class="fraud-kicker">Current Prompt</p>
+                    <h3>Interviewer Prompt</h3>
+                </div>
+                <div class="interview-kind-meta">
+                    <span id="question-kind-badge" class="interview-kind-pill">Typing</span>
+                    <span id="question-kind-note" class="muted interview-kind-note">Type a short answer with context, action, tradeoff, and result.</span>
+                </div>
+            </div>
+            <div id="pressure-event" class="message warning mt-3" style="display:none;"></div>
+            <div class="interview-question" id="current-question">Press start to begin.</div>
+        </div>
+
+        <div class="card interview-panel interview-review-card">
+            <div class="interview-panel-head">
+                <div>
+                    <p class="fraud-kicker">Round Review</p>
+                    <h3>Latest Review</h3>
+                </div>
+                <p class="muted interview-panel-copy">Each answer is graded for delivery, structure, and decision quality under pressure.</p>
+            </div>
+            <div id="latest-review" class="muted">Your score and coaching notes will appear here after each answer.</div>
+        </div>
+    </div>
+
+    <div class="card mt-4 interview-panel interview-answer-card">
+        <div class="interview-answer-head">
+            <div>
+                <p class="fraud-kicker">Response Composer</p>
+                <h3>Your Answer</h3>
+            </div>
+            <p class="muted interview-panel-copy" id="answer-mode-copy">The answer area changes with the current question type.</p>
+        </div>
+        <div id="text-answer-shell" class="interview-input-shell">
+            <textarea id="answer-box" rows="8" placeholder="Type your answer with context, action, tradeoff, and measurable impact."></textarea>
+            <div class="interview-answer-hints">
+                <span>Open with context</span>
+                <span>Explain your decision</span>
+                <span>Name the tradeoff</span>
+                <span>Close with result</span>
+            </div>
+        </div>
+        <div id="radio-answer-shell" class="interview-choice-shell" style="display:none;"></div>
+        <div id="checkbox-answer-shell" class="interview-choice-shell" style="display:none;"></div>
+        <div class="button-group mt-3 interview-actions">
+            <button class="btn primary" id="submit-answer-btn" type="button">Submit Answer</button>
+        </div>
+        <div id="answer-error" class="form-alert mt-3" style="display:none;"></div>
+    </div>
+
+    <div class="grid mt-4 interview-grid">
+        <div class="card interview-panel interview-transcript-card">
+            <div class="interview-panel-head">
+                <div>
+                    <p class="fraud-kicker">Replay</p>
+                    <h3>Transcript</h3>
+                </div>
+                <p class="muted interview-panel-copy">Review how you handled narrative answers and faster decision rounds across the whole pack.</p>
+            </div>
+            <div id="transcript" class="interview-transcript muted">The interview transcript will build here turn by turn.</div>
+        </div>
+        <div class="card interview-panel" id="final-summary-card" style="display:none;">
+            <div class="interview-panel-head">
+                <div>
+                    <p class="fraud-kicker">Session Wrap-Up</p>
+                    <h3>Final Summary</h3>
+                </div>
+                <p class="muted interview-panel-copy">Use the final breakdown to target the next practice round.</p>
+            </div>
+            <div id="final-summary"></div>
+        </div>
+    </div>
+</section>
+{% else %}
+<section class="card mt-4 interview-empty-card">
+    <p class="fraud-kicker">Resume Required</p>
+    <h2>Upload a resume before starting the simulator.</h2>
+    <p class="muted">The interview engine builds more realistic prompts when it can anchor them to your projects, tools, and experience.</p>
+    <div class="mt-3">
+        <a class="btn primary" href="{% url 'resume_upload' %}">Upload Resume</a>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if resumes %}
+<script>
+let currentQuestion = null;
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function riskClassFromScore(score) {
+    if (score >= 75) return 'risk-low';
+    if (score >= 55) return 'risk-medium';
+    return 'risk-high';
+}
+function setVisible(id, visible) {
+    const node = document.getElementById(id);
+    if (!node) return;
+    node.style.display = visible ? '' : 'none';
+}
+
+function showError(id, message) {
+    const node = document.getElementById(id);
+    if (!node) return;
+    if (!message) {
+        node.style.display = 'none';
+        node.innerHTML = '';
+        return;
+    }
+    node.style.display = '';
+    node.innerHTML = `<p>${escapeHtml(message)}</p>`;
+}
+
+function renderScoreSummary(summary) {
+    const overall = Number(summary.overall || 0);
+    const overallPill = document.getElementById('overall-pill');
+    overallPill.className = `risk-badge ${riskClassFromScore(overall)}`;
+    overallPill.textContent = `Overall ${overall}`;
+    document.getElementById('confidence-score').textContent = Number(summary.confidence || 0);
+    document.getElementById('clarity-score').textContent = Number(summary.clarity || 0);
+    document.getElementById('depth-score').textContent = Number(summary.depth || 0);
+}
+
+function renderTranscript(turns) {
+    const node = document.getElementById('transcript');
+    if (!Array.isArray(turns) || !turns.length) {
+        node.innerHTML = 'The interview transcript will build here turn by turn.';
+        return;
+    }
+    node.innerHTML = turns.map(turn => {
+        const scores = turn.scores || {};
+        return `
+            <div class="interview-turn">
+                <p class="fraud-kicker">Question ${Number(turn.round || 0)} · ${escapeHtml(turn.question_kind_label || 'Typing')}</p>
+                <p><strong>Q:</strong> ${escapeHtml(turn.question || '')}</p>
+                <p><strong>A:</strong> ${escapeHtml(turn.answer || '')}</p>
+                <p class="muted">Confidence ${Number(scores.confidence || 0)} | Clarity ${Number(scores.clarity || 0)} | Depth ${Number(scores.depth || 0)}</p>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderLatestReview(data) {
+    const node = document.getElementById('latest-review');
+    const evaluation = data.evaluation;
+    if (!evaluation) {
+        node.innerHTML = '<p class="muted">Your score and coaching notes will appear here after each answer.</p>';
+        return;
+    }
+    const strengths = Array.isArray(evaluation.strengths) ? evaluation.strengths : [];
+    const improvements = Array.isArray(evaluation.improvements) ? evaluation.improvements : [];
+    node.innerHTML = `
+        <div class="interview-review-grid">
+            <div class="score-card"><span>Confidence</span><strong>${Number(evaluation.confidence || 0)}</strong></div>
+            <div class="score-card"><span>Clarity</span><strong>${Number(evaluation.clarity || 0)}</strong></div>
+            <div class="score-card"><span>Depth</span><strong>${Number(evaluation.depth || 0)}</strong></div>
+        </div>
+        <p class="mt-3"><strong>Overall:</strong> ${Number(evaluation.overall || 0)}</p>
+        <p><strong>Coaching Note:</strong> ${escapeHtml(evaluation.coaching_note || '')}</p>
+        <p class="mt-3"><strong>Strengths</strong></p>
+        <ul class="insight-list compact-list">${(strengths.length ? strengths : ['No strong signal yet.']).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+        <p class="mt-3"><strong>Improve Next</strong></p>
+        <ul class="insight-list compact-list">${(improvements.length ? improvements : ['Keep the same structure and add more specifics.']).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+    `;
+}
+
+function renderFinalSummary(summary) {
+    const node = document.getElementById('final-summary');
+    if (!summary) {
+        setVisible('final-summary-card', false);
+        return;
+    }
+    const mix = summary.question_mix || {};
+    setVisible('final-summary-card', true);
+    node.innerHTML = `
+        <div class="interview-review-grid">
+            <div class="score-card"><span>Confidence</span><strong>${Number(summary.confidence || 0)}</strong></div>
+            <div class="score-card"><span>Clarity</span><strong>${Number(summary.clarity || 0)}</strong></div>
+            <div class="score-card"><span>Depth</span><strong>${Number(summary.depth || 0)}</strong></div>
+        </div>
+        <p class="mt-3"><strong>Verdict:</strong> ${escapeHtml(summary.verdict || '')}</p>
+        <p><strong>Strongest Dimension:</strong> ${escapeHtml(summary.strongest_dimension || '')}</p>
+        <p><strong>Weakest Dimension:</strong> ${escapeHtml(summary.weakest_dimension || '')}</p>
+        <p><strong>Questions Answered:</strong> ${Number(summary.questions_answered || 0)}</p>
+        <p><strong>Pressure Events Triggered:</strong> ${Number(summary.pressure_events_triggered || 0)}</p>
+        <p><strong>Question Mix:</strong> Typing ${Number(mix.text || 0)} | Radio ${Number(mix.radio || 0)} | Checkbox ${Number(mix.checkbox || 0)}</p>
+        <p class="mt-3"><strong>Recommended Next Steps</strong></p>
+        <ul class="insight-list compact-list">${(summary.recommendations || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+    `;
+}
+
+function renderQuestionInput(question) {
+    currentQuestion = question || null;
+    const badge = document.getElementById('question-kind-badge');
+    const note = document.getElementById('question-kind-note');
+    const modeCopy = document.getElementById('answer-mode-copy');
+    const textShell = document.getElementById('text-answer-shell');
+    const radioShell = document.getElementById('radio-answer-shell');
+    const checkboxShell = document.getElementById('checkbox-answer-shell');
+    const answerBox = document.getElementById('answer-box');
+
+    radioShell.innerHTML = '';
+    checkboxShell.innerHTML = '';
+    answerBox.value = '';
+
+    if (!question) {
+        badge.textContent = 'Complete';
+        note.textContent = 'Session complete.';
+        modeCopy.textContent = 'The interview pack is complete.';
+        textShell.style.display = 'none';
+        radioShell.style.display = 'none';
+        checkboxShell.style.display = 'none';
+        return;
+    }
+
+    badge.textContent = question.kind_label || 'Typing';
+    note.textContent = question.instructions || '';
+    modeCopy.textContent = question.instructions || 'Answer based on the current question type.';
+
+    if (question.kind === 'radio') {
+        textShell.style.display = 'none';
+        radioShell.style.display = '';
+        checkboxShell.style.display = 'none';
+        radioShell.innerHTML = (question.options || []).map(option => `
+            <label class="interview-choice-card">
+                <input type="radio" name="question-option" value="${escapeHtml(option.id)}">
+                <span>${escapeHtml(option.label)}</span>
+            </label>
+        `).join('');
+        return;
+    }
+
+    if (question.kind === 'checkbox') {
+        textShell.style.display = 'none';
+        radioShell.style.display = 'none';
+        checkboxShell.style.display = '';
+        checkboxShell.innerHTML = (question.options || []).map(option => `
+            <label class="interview-choice-card">
+                <input type="checkbox" name="question-option" value="${escapeHtml(option.id)}">
+                <span>${escapeHtml(option.label)}</span>
+            </label>
+        `).join('');
+        return;
+    }
+
+    textShell.style.display = '';
+    radioShell.style.display = 'none';
+    checkboxShell.style.display = 'none';
+    answerBox.placeholder = question.placeholder || 'Type your answer with context, action, tradeoff, and measurable impact.';
+}
+
+function buildSubmissionPayload() {
+    if (!currentQuestion || currentQuestion.kind === 'text') {
+        return {
+            answer: document.getElementById('answer-box').value,
+            selected_options: [],
+        };
+    }
+    const selected = Array.from(document.querySelectorAll('input[name="question-option"]:checked')).map(node => node.value);
+    return {
+        answer: '',
+        selected_options: selected,
+    };
+}
+
+function applyPayload(data) {
+    setVisible('interview-arena', true);
+    document.getElementById('difficulty-label').textContent = escapeHtml(data.difficulty_label || 'Baseline');
+    document.getElementById('progress-label').textContent = `Question ${Number(data.progress.current || 0)} / ${Number(data.progress.total || 0)}`;
+    document.getElementById('current-question').textContent = data.question || 'Interview complete.';
+    renderQuestionInput(data.question_details || null);
+    renderScoreSummary(data.score_summary || {});
+    renderTranscript(data.transcript || []);
+    renderLatestReview(data);
+    renderFinalSummary(data.final_summary || null);
+
+    const pressureNode = document.getElementById('pressure-event');
+    if (data.pressure_event) {
+        pressureNode.style.display = '';
+        pressureNode.innerHTML = `<strong>${escapeHtml(data.pressure_event.label || 'Pressure Event')}:</strong> ${escapeHtml(data.pressure_event.message || '')}`;
+    } else {
+        pressureNode.style.display = 'none';
+        pressureNode.innerHTML = '';
+    }
+
+    const disabled = data.status === 'completed';
+    document.getElementById('submit-answer-btn').disabled = disabled;
+    document.querySelectorAll('input[name="question-option"]').forEach(node => {
+        node.disabled = disabled;
+    });
+    document.getElementById('answer-box').disabled = disabled;
+}
+
+async function postJson(url, payload) {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || 'Request failed');
+    }
+    return data;
+}
+
+const startBtn = document.getElementById('start-interview-btn');
+const submitBtn = document.getElementById('submit-answer-btn');
+const resetBtn = document.getElementById('reset-interview-btn');
+
+startBtn.addEventListener('click', async () => {
+    showError('setup-error', '');
+    try {
+        const data = await postJson('{% url "interview_simulator_start" %}', {
+            resume_id: document.getElementById('resume-id').value,
+            role: document.getElementById('role-name').value,
+            company: document.getElementById('company-name').value,
+            focus: document.getElementById('focus-area').value,
+            question_count: document.getElementById('question-count').value,
+        });
+        applyPayload(data);
+    } catch (error) {
+        showError('setup-error', error.message);
+    }
+});
+
+submitBtn.addEventListener('click', async () => {
+    showError('answer-error', '');
+    try {
+        const data = await postJson('{% url "interview_simulator_answer" %}', buildSubmissionPayload());
+        applyPayload(data);
+    } catch (error) {
+        showError('answer-error', error.message);
+    }
+});
+
+resetBtn.addEventListener('click', async () => {
+    showError('setup-error', '');
+    showError('answer-error', '');
+    try {
+        await postJson('{% url "interview_simulator_reset" %}', {});
+        setVisible('interview-arena', false);
+        setVisible('final-summary-card', false);
+        renderQuestionInput(null);
+        document.getElementById('pressure-event').style.display = 'none';
+    } catch (error) {
+        showError('setup-error', error.message);
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,8 +1,11 @@
-﻿from pathlib import Path
+﻿import re
+from pathlib import Path
+
 from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm, AuthenticationForm
+from django.core.validators import URLValidator
 
 from .models import Resume, Job, UserProfile
 
@@ -82,6 +85,57 @@ class JobForm(forms.ModelForm):
         skills_raw = self.cleaned_data.get("required_skills", "")
         skills = [skill.strip().lower() for skill in skills_raw.split(",") if skill.strip()]
         return skills
+
+
+class FakeJobDetectionForm(forms.Form):
+    job_title = forms.CharField(max_length=200, required=False, label="Job Title")
+    company = forms.CharField(max_length=200, required=False)
+    location = forms.CharField(max_length=200, required=False)
+    salary_range = forms.CharField(max_length=100, required=False, label="Salary")
+    apply_link = forms.CharField(
+        required=False,
+        label="Job Link",
+        help_text="Paste the job post URL. A missing https:// will be added automatically.",
+    )
+    description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 8}),
+        help_text="Paste the job description, recruiter message, or both.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        placeholders = {
+            "job_title": "Backend Developer",
+            "company": "Acme Technologies",
+            "location": "Bengaluru / Remote",
+            "salary_range": "12-18 LPA",
+            "apply_link": "company.com/careers/backend-developer",
+            "description": "Paste the full job description or recruiter message here...",
+        }
+        for name, placeholder in placeholders.items():
+            self.fields[name].widget.attrs.setdefault("placeholder", placeholder)
+
+    def clean_apply_link(self):
+        raw_value = (self.cleaned_data.get("apply_link") or "").strip()
+        if not raw_value:
+            return ""
+
+        normalized = raw_value
+        if not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", normalized):
+            normalized = f"https://{normalized}"
+
+        validator = URLValidator(schemes=["http", "https"])
+        validator(normalized)
+        return normalized
+
+    def clean(self):
+        cleaned_data = super().clean()
+        description = (cleaned_data.get("description") or "").strip()
+        apply_link = (cleaned_data.get("apply_link") or "").strip()
+        if not description and not apply_link:
+            raise forms.ValidationError("Provide a job description, a job link, or both.")
+        return cleaned_data
 
 
 class ProfileUpdateForm(forms.ModelForm):

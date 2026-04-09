@@ -1,7 +1,6 @@
 ﻿import json
 import logging
 from collections import Counter
-from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -24,23 +23,37 @@ from .forms import (
     UserRegistrationForm,
     ResumeUploadForm,
     JobForm,
+    FakeJobDetectionForm,
     ProfileUpdateForm,
     ProfilePhotoForm,
     CustomPasswordChangeForm,
 )
-from .models import Resume, Job, MatchResult, Recommendation, SavedJob, UserProfile, JobRefreshState
+from .models import Resume, Job, MatchResult, Recommendation, SavedJob, UserProfile
 from .services import (
     parse_resume,
     match_resume_job,
     recommend_jobs,
     skill_gap,
     fetch_jobs_auto,
+    detect_fake_job_posting,
+    start_interview_simulator,
+    advance_interview_simulator,
+    INTERVIEW_SIMULATOR_SESSION_KEY,
     AIServiceError,
 )
+from .job_refresh import merge_jobs_into_database, refresh_jobs_daily_if_needed
 
 GENERIC_SKILL_TAGS = {"general", "remote"}
-DAILY_REFRESH_STATE_KEY = "daily_jobs_auto_refresh"
 logger = logging.getLogger(__name__)
+
+
+def _request_payload(request):
+    if request.content_type == "application/json":
+        try:
+            return json.loads(request.body.decode("utf-8"))
+        except json.JSONDecodeError:
+            return None
+    return request.POST
 
 
 def _normalized_skill_set(skills):
@@ -64,91 +77,15 @@ def _is_resume_job_match(resume_skills, job_skills):
 
 
 def _merge_jobs_into_database(fetched_jobs, default_location):
-    api_jobs_added = 0
-    api_jobs_updated = 0
-    refresh_time = timezone.now()
-
-    for job_data in fetched_jobs:
-        if not job_data.get("title") or not job_data.get("company"):
-            continue
-
-        defaults = {
-            "level": job_data.get("level", "Mid"),
-            "salary_range": job_data.get("salary_range", ""),
-            "description": job_data.get("description", "No description available"),
-            "required_skills": job_data.get("required_skills", []),
-            "apply_link": job_data.get("apply_link", ""),
-            "created_at": refresh_time,
-        }
-        _, created = Job.objects.update_or_create(
-            title=job_data["title"],
-            company=job_data["company"],
-            location=(job_data.get("location") or default_location or "Remote"),
-            defaults=defaults,
-        )
-        if created:
-            api_jobs_added += 1
-        else:
-            api_jobs_updated += 1
-
-    return api_jobs_added, api_jobs_updated
+    return merge_jobs_into_database(fetched_jobs, default_location)
 
 
 def _refresh_jobs_daily_if_needed():
-    if not getattr(settings, "AUTO_DAILY_JOB_REFRESH", True):
-        return
-
-    now = timezone.now()
-    refresh_window = timedelta(hours=max(1, int(getattr(settings, "AUTO_DAILY_JOB_REFRESH_HOURS", 24))))
-    retry_window = timedelta(minutes=max(5, int(getattr(settings, "AUTO_DAILY_JOB_REFRESH_RETRY_MINUTES", 60))))
-
-    state, _ = JobRefreshState.objects.get_or_create(key=DAILY_REFRESH_STATE_KEY)
-
-    if state.last_success_at and (now - state.last_success_at) < refresh_window:
-        return
-    if state.last_attempted_at and (now - state.last_attempted_at) < retry_window:
-        return
-
-    state.last_attempted_at = now
-    state.save()
-
-    api_query = (getattr(settings, "AUTO_DAILY_JOB_QUERY", "software developer") or "software developer").strip()
-    api_location = (getattr(settings, "AUTO_DAILY_JOB_LOCATION", "India") or "India").strip()
-    api_limit = max(5, min(int(getattr(settings, "AUTO_DAILY_JOB_LIMIT", 100)), 150))
-    require_location_match = getattr(settings, "AUTO_DAILY_JOB_REQUIRE_LOCATION_MATCH", True)
-
     try:
-        fetched_jobs, api_source = fetch_jobs_auto(
-            query=api_query,
-            location=api_location,
-            limit=api_limit,
-        )
-
-        if require_location_match:
-            location_key = api_location.lower()
-            fetched_jobs = [
-                row for row in fetched_jobs
-                if location_key in (row.get("location", "") or "").lower()
-            ]
-
-        added, updated = _merge_jobs_into_database(fetched_jobs, api_location)
-        state.last_success_at = timezone.now()
-        state.last_source = api_source
-        state.last_error = ""
-        state.save()
-        logger.info(
-            "Daily jobs refresh complete. Source=%s Added=%s Updated=%s",
-            api_source,
-            added,
-            updated,
-        )
+        refresh_jobs_daily_if_needed()
     except AIServiceError as exc:
-        state.last_error = str(exc)[:1000]
-        state.save()
         logger.warning("Daily jobs refresh failed: %s", exc)
     except Exception as exc:
-        state.last_error = str(exc)[:1000]
-        state.save()
         logger.exception("Unexpected error during daily jobs refresh: %s", exc)
 
 
@@ -287,6 +224,24 @@ def resume_upload(request):
         form = ResumeUploadForm()
 
     return render(request, "resume_upload.html", {"form": form})
+
+
+@login_required
+@require_POST
+def resume_delete(request, pk):
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    file_name = resume.display_name
+
+    session_state = request.session.get(INTERVIEW_SIMULATOR_SESSION_KEY)
+    if session_state and session_state.get("resume_id") == resume.id:
+        request.session.pop(INTERVIEW_SIMULATOR_SESSION_KEY, None)
+
+    if resume.original_file:
+        resume.original_file.delete(save=False)
+    resume.delete()
+    request.session.modified = True
+    messages.success(request, f"Deleted resume: {file_name}")
+    return redirect("profile")
 
 
 @login_required
@@ -467,6 +422,121 @@ def job_detail(request, pk):
         "resumes": resumes,
         "is_saved": is_saved
     })
+
+
+def fake_job_detector(request):
+    analysis = None
+    if request.method == "POST":
+        form = FakeJobDetectionForm(request.POST)
+        if form.is_valid():
+            analysis = detect_fake_job_posting(form.cleaned_data)
+    else:
+        form = FakeJobDetectionForm()
+
+    return render(request, "fake_job_detector.html", {
+        "form": form,
+        "analysis": analysis,
+    })
+
+
+@login_required
+def interview_simulator(request):
+    resumes = Resume.objects.filter(user=request.user).order_by("-uploaded_at")
+    return render(request, "interview_simulator.html", {
+        "resumes": resumes,
+        "selected_resume": resumes.first(),
+    })
+
+
+@login_required
+@require_POST
+def interview_simulator_start_view(request):
+    payload = _request_payload(request)
+    if payload is None:
+        return HttpResponseBadRequest("Invalid JSON")
+
+    resume_id = payload.get("resume_id")
+    if not resume_id:
+        return HttpResponseBadRequest("resume_id is required")
+
+    resume = get_object_or_404(Resume, pk=resume_id, user=request.user)
+    if not (resume.extracted_json or {}).get("skills") and not (resume.raw_text or "").strip() and resume.original_file:
+        try:
+            file_path = resume.original_file.path
+            file_type = resume.original_file.name.split(".")[-1].lower()
+            parsed = parse_resume(file_path, file_type)
+            resume.raw_text = parsed.get("raw_text", "")
+            resume.extracted_json = parsed
+            resume.save()
+        except AIServiceError as exc:
+            return JsonResponse({"error": str(exc)}, status=502)
+
+    role = (payload.get("role") or "Software Engineer").strip() or "Software Engineer"
+    company = (payload.get("company") or "").strip()
+    focus = (payload.get("focus") or "general").strip() or "general"
+    try:
+        question_count = int(payload.get("question_count") or payload.get("rounds") or 50)
+    except (TypeError, ValueError):
+        question_count = 50
+
+    session_state, response_payload = start_interview_simulator(
+        resume.extracted_json or {"raw_text": resume.raw_text},
+        role=role,
+        company=company,
+        focus=focus,
+        total_questions=question_count,
+    )
+    session_state["resume_id"] = resume.id
+    request.session[INTERVIEW_SIMULATOR_SESSION_KEY] = session_state
+    request.session.modified = True
+    return JsonResponse(response_payload)
+
+
+@login_required
+@require_POST
+def interview_simulator_answer_view(request):
+    payload = _request_payload(request)
+    if payload is None:
+        return HttpResponseBadRequest("Invalid JSON")
+
+    state = request.session.get(INTERVIEW_SIMULATOR_SESSION_KEY)
+    if not state:
+        return JsonResponse({"error": "Interview session not started."}, status=400)
+
+    try:
+        new_state, response_payload = advance_interview_simulator(
+            state,
+            payload.get("answer", ""),
+            payload.get("selected_options"),
+        )
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+
+    request.session[INTERVIEW_SIMULATOR_SESSION_KEY] = new_state
+    request.session.modified = True
+    return JsonResponse(response_payload)
+
+
+@login_required
+@require_POST
+def interview_simulator_reset_view(request):
+    request.session.pop(INTERVIEW_SIMULATOR_SESSION_KEY, None)
+    request.session.modified = True
+    return JsonResponse({"reset": True})
+
+
+@require_POST
+def job_fake_check(request, pk):
+    job = get_object_or_404(Job, pk=pk)
+    result = detect_fake_job_posting({
+        "job_title": job.title,
+        "company": job.company,
+        "location": job.location,
+        "salary_range": job.salary_range,
+        "description": job.description,
+        "apply_link": job.apply_link,
+    })
+    return JsonResponse(result)
 
 
 @login_required

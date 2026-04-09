@@ -1,0 +1,69 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1700' height='980' viewBox='0 0 1700 980'>
+<style>.bg{fill:#0d121e;} .title{font:700 34px Arial,sans-serif;fill:#95c6ff;} .sub{font:18px Arial,sans-serif;fill:#9cb0da;} .nodeTitle{font:700 20px Arial,sans-serif;fill:#f2f7ff;} .nodeLine{font:15px Arial,sans-serif;fill:#cedcf7;} .edge{stroke:#a4bdff;stroke-width:3;fill:none;marker-end:url(#a);} .edgeText{font:14px Arial,sans-serif;fill:#dce8ff;}</style>
+<defs><marker id='a' markerWidth='12' markerHeight='12' refX='9' refY='3' orient='auto' markerUnits='strokeWidth'><path d='M0,0 L0,6 L9,3 z' fill='#a4bdff'/></marker></defs>
+<rect class='bg' x='0' y='0' width='1700' height='980'/>
+<text class='title' x='50' y='56'>Backend Structure - AI Resume Analyzer</text>
+<text class='sub' x='50' y='86'>Django web layer + Flask AI microservice + database and integrations</text>
+<line class='edge' x1='350' y1='190' x2='450' y2='200'/>
+<text class='edgeText' x='406.0' y='187.0'>HTTP 8000</text>
+<line class='edge' x1='870' y1='200' x2='1030' y2='210'/>
+<text class='edgeText' x='956.0' y='197.0'>JSON API calls</text>
+<line class='edge' x1='660' y1='310' x2='660' y2='420'/>
+<text class='edgeText' x='666.0' y='357.0'>ORM / SQL</text>
+<line class='edge' x1='870' y1='200' x2='1030' y2='505'/>
+<text class='edgeText' x='956.0' y='344.5'>Save uploaded files</text>
+<line class='edge' x1='1210' y1='320' x2='1210' y2='420'/>
+<text class='edgeText' x='1216.0' y='362.0'>Read resume files</text>
+<line class='edge' x1='870' y1='200' x2='1400' y2='455'/>
+<text class='edgeText' x='1141.0' y='319.5'>Fetch latest jobs</text>
+<line class='edge' x1='660' y1='310' x2='780' y2='660'/>
+<text class='edgeText' x='726.0' y='477.0'>AI_SERVICE_FALLBACK_LOCAL</text>
+<rect x='70' y='120' width='280' height='140' rx='16' ry='16' fill='rgb(30,50,90)' stroke='rgb(118,145,210)' stroke-width='3'/>
+<rect x='70' y='120' width='280' height='42' rx='16' ry='16' fill='rgb(54,74,114)'/>
+<rect x='70' y='142' width='280' height='20' fill='rgb(54,74,114)'/>
+<text class='nodeTitle' x='84' y='148'>Client Browser</text>
+<text class='nodeLine' x='84' y='176'>Django templates</text>
+<text class='nodeLine' x='84' y='200'>JS fetch calls</text>
+<rect x='450' y='90' width='420' height='220' rx='16' ry='16' fill='rgb(32,78,54)' stroke='rgb(118,145,210)' stroke-width='3'/>
+<rect x='450' y='90' width='420' height='42' rx='16' ry='16' fill='rgb(56,102,78)'/>
+<rect x='450' y='112' width='420' height='20' fill='rgb(56,102,78)'/>
+<text class='nodeTitle' x='464' y='118'>Django Web App (web/)</text>
+<text class='nodeLine' x='464' y='146'>Auth, Views, ORM</text>
+<text class='nodeLine' x='464' y='170'>Resume upload</text>
+<text class='nodeLine' x='464' y='194'>Recommendations</text>
+<rect x='1030' y='100' width='360' height='220' rx='16' ry='16' fill='rgb(89,52,28)' stroke='rgb(118,145,210)' stroke-width='3'/>
+<rect x='1030' y='100' width='360' height='42' rx='16' ry='16' fill='rgb(113,76,52)'/>
+<rect x='1030' y='122' width='360' height='20' fill='rgb(113,76,52)'/>
+<text class='nodeTitle' x='1044' y='128'>Flask AI Service (ai/)</text>
+<text class='nodeLine' x='1044' y='156'>/parse_resume</text>
+<text class='nodeLine' x='1044' y='180'>/match</text>
+<text class='nodeLine' x='1044' y='204'>/recommend_jobs</text>
+<text class='nodeLine' x='1044' y='228'>Local NLP heuristics</text>
+<rect x='450' y='420' width='420' height='180' rx='16' ry='16' fill='rgb(57,43,104)' stroke='rgb(118,145,210)' stroke-width='3'/>
+<rect x='450' y='420' width='420' height='42' rx='16' ry='16' fill='rgb(81,67,128)'/>
+<rect x='450' y='442' width='420' height='20' fill='rgb(81,67,128)'/>
+<text class='nodeTitle' x='464' y='448'>Database</text>
+<text class='nodeLine' x='464' y='476'>SQLite (default)</text>
+<text class='nodeLine' x='464' y='500'>PostgreSQL/MySQL (optional)</text>
+<text class='nodeLine' x='464' y='524'>Users, Jobs, Resume, MatchResult</text>
+<rect x='1030' y='420' width='360' height='170' rx='16' ry='16' fill='rgb(38,78,89)' stroke='rgb(118,145,210)' stroke-width='3'/>
+<rect x='1030' y='420' width='360' height='42' rx='16' ry='16' fill='rgb(62,102,113)'/>
+<rect x='1030' y='442' width='360' height='20' fill='rgb(62,102,113)'/>
+<text class='nodeTitle' x='1044' y='448'>Media Storage (/media)</text>
+<text class='nodeLine' x='1044' y='476'>Uploaded PDF/DOCX</text>
+<text class='nodeLine' x='1044' y='500'>Profile photos</text>
+<text class='nodeLine' x='1044' y='524'>Shared volume in Docker</text>
+<rect x='1400' y='360' width='250' height='190' rx='16' ry='16' fill='rgb(89,39,39)' stroke='rgb(118,145,210)' stroke-width='3'/>
+<rect x='1400' y='360' width='250' height='42' rx='16' ry='16' fill='rgb(113,63,63)'/>
+<rect x='1400' y='382' width='250' height='20' fill='rgb(113,63,63)'/>
+<text class='nodeTitle' x='1414' y='388'>External Job APIs</text>
+<text class='nodeLine' x='1414' y='416'>JSearch (RapidAPI)</text>
+<text class='nodeLine' x='1414' y='440'>The Muse</text>
+<text class='nodeLine' x='1414' y='464'>Remotive</text>
+<rect x='630' y='660' width='300' height='130' rx='16' ry='16' fill='rgb(77,77,29)' stroke='rgb(118,145,210)' stroke-width='3'/>
+<rect x='630' y='660' width='300' height='42' rx='16' ry='16' fill='rgb(101,101,53)'/>
+<rect x='630' y='682' width='300' height='20' fill='rgb(101,101,53)'/>
+<text class='nodeTitle' x='644' y='688'>Django AI Fallback</text>
+<text class='nodeLine' x='644' y='716'>If Flask unavailable</text>
+<text class='nodeLine' x='644' y='740'>parse/match locally</text>
+</svg>

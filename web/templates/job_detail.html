@@ -15,12 +15,20 @@
         {% else %}
             <p class="text-gray">No apply link available</p>
         {% endif %}
+        <a class="btn secondary" href="{% url 'fake_job_detector' %}">Check Another Job</a>
         {% if user.is_authenticated %}
             <button class="btn secondary" id="save-job-btn" data-saved="{{ is_saved|yesno:'true,false' }}">
                 {% if is_saved %}Unsave Job{% else %}Save Job{% endif %}
             </button>
         {% endif %}
     </div>
+</div>
+
+<div class="card mt-4">
+    <h3>Fake Job Detection</h3>
+    <p class="muted">Analyze this listing for scam signals using its details and application link.</p>
+    <button class="btn secondary" id="fake-check-btn">Analyze Listing Safety</button>
+    <div id="fake-check-result" class="match-result mt-3"></div>
 </div>
 
 {% if user.is_authenticated %}
@@ -106,6 +114,86 @@ function renderScoreBreakdown(rows) {
     return `<p><strong>ATS Breakdown:</strong></p><ul>${listItems}</ul>`;
 }
 
+function renderRiskFlags(flags) {
+    if (!Array.isArray(flags) || !flags.length) {
+        return '<li>No major fake-job indicators were detected in this listing.</li>';
+    }
+    return flags.map(flag => {
+        const label = escapeHtml(flag.label || 'Flag');
+        const detail = escapeHtml(flag.detail || '');
+        const points = Number.isFinite(Number(flag.points)) ? `(+${Number(flag.points)})` : '';
+        return `<li><strong>${label} ${points}</strong><br>${detail}</li>`;
+    }).join('');
+}
+
+function renderFakeJobResult(data) {
+    const riskLevel = escapeHtml(data.risk_label || 'Risk Review');
+    const riskClass = escapeHtml((data.risk_level || 'medium').toLowerCase());
+    const score = Number.isFinite(Number(data.risk_score)) ? Number(data.risk_score) : 0;
+    const positives = Array.isArray(data.positive_signals) ? data.positive_signals : [];
+    const recommendations = Array.isArray(data.recommendations) ? data.recommendations : [];
+    const linkAnalysis = data.link_analysis || {};
+    const domain = escapeHtml(linkAnalysis.domain || 'Not provided');
+    const pageTitle = escapeHtml(linkAnalysis.page_title || 'Not available');
+    const finalUrl = escapeHtml(linkAnalysis.final_url || linkAnalysis.submitted_url || '');
+    const fetchNote = escapeHtml(linkAnalysis.fetch_note || '');
+
+    return `
+        <div class="fraud-result fraud-${riskClass}">
+            <div class="fraud-result-header">
+                <div>
+                    <p class="fraud-kicker">Fake Job Detection</p>
+                    <h4>${riskLevel}</h4>
+                    <p>${escapeHtml(data.summary || '')}</p>
+                    <p><strong>Verdict:</strong> ${escapeHtml(data.verdict || '')}</p>
+                </div>
+                <div class="risk-badge risk-${riskClass}">${score}/100</div>
+            </div>
+            <div class="fraud-meta">
+                <div><strong>Domain:</strong> ${domain}</div>
+                <div><strong>Page title:</strong> ${pageTitle}</div>
+                ${finalUrl ? `<div><strong>Verified URL:</strong> <a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${finalUrl}</a></div>` : ''}
+                ${fetchNote ? `<div><strong>Link note:</strong> ${fetchNote}</div>` : ''}
+            </div>
+            <div class="form-row mt-3">
+                <div>
+                    <p><strong>Red Flags</strong></p>
+                    <ul class="insight-list">${renderRiskFlags(data.flags)}</ul>
+                </div>
+                <div>
+                    <p><strong>Positive Signals</strong></p>
+                    <ul class="insight-list">${renderBulletList(positives)}</ul>
+                    <p class="mt-3"><strong>What To Do Next</strong></p>
+                    <ul class="insight-list">${renderBulletList(recommendations)}</ul>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+const fakeCheckBtn = document.getElementById('fake-check-btn');
+if (fakeCheckBtn) {
+    fakeCheckBtn.addEventListener('click', async () => {
+        const resultBox = document.getElementById('fake-check-result');
+        resultBox.textContent = 'Analyzing listing safety...';
+
+        const response = await fetch('{% url "job_fake_check" job.id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            resultBox.textContent = data.error || 'Failed to analyze this job.';
+            return;
+        }
+
+        resultBox.innerHTML = renderFakeJobResult(data);
+    });
+}
+
 const matchBtn = document.getElementById('match-btn');
 if (matchBtn) {
     matchBtn.addEventListener('click', async () => {
@@ -135,7 +223,7 @@ if (matchBtn) {
         const missingKeywords = Array.isArray(data.missing_keywords) ? data.missing_keywords : [];
         const mistakes = Array.isArray(data.mistakes) ? data.mistakes : [];
         const tips = Array.isArray(data.improvement_tips) ? data.improvement_tips : [];
-        const matchLink = data.match_url ? `<a class=\"btn secondary\" href=\"${data.match_url}\">Open Match Page</a>` : '';
+        const matchLink = data.match_url ? `<a class="btn secondary" href="${data.match_url}">Open Match Page</a>` : '';
         resultBox.innerHTML = `
             <div class="card">
                 <h4>ATS Score: ${atsScore}/100</h4>

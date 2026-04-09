@@ -1,4 +1,4 @@
-from django.urls import path
+﻿from django.urls import path
 from django.contrib.auth import views as auth_views
 
 from .forms import CustomAuthenticationForm
@@ -46,12 +46,19 @@ urlpatterns = [
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("profile/", views.profile, name="profile"),
+    path("interview-simulator/", views.interview_simulator, name="interview_simulator"),
+    path("interview-simulator/start/", views.interview_simulator_start_view, name="interview_simulator_start"),
+    path("interview-simulator/answer/", views.interview_simulator_answer_view, name="interview_simulator_answer"),
+    path("interview-simulator/reset/", views.interview_simulator_reset_view, name="interview_simulator_reset"),
+    path("fake-job-detector/", views.fake_job_detector, name="fake_job_detector"),
     path("resumes/upload/", views.resume_upload, name="resume_upload"),
     path("resumes/<int:pk>/", views.resume_detail, name="resume_detail"),
+    path("resumes/<int:pk>/delete/", views.resume_delete, name="resume_delete"),
     path("resumes/<int:pk>/ats-check/", views.resume_ats_check, name="resume_ats_check"),
     path("resumes/<int:pk>/download/", views.resume_json_download, name="resume_json_download"),
     path("jobs/", views.job_list, name="job_list"),
     path("jobs/<int:pk>/", views.job_detail, name="job_detail"),
+    path("jobs/<int:pk>/fake-check/", views.job_fake_check, name="job_fake_check"),
     path("jobs/<int:pk>/match/", views.match_job, name="match_job"),
     path("jobs/<int:pk>/skill-gap/", views.skill_gap_job, name="skill_gap_job"),
     path("jobs/<int:pk>/save/", views.toggle_saved_job, name="toggle_saved_job"),

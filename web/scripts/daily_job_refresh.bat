@@ -3,14 +3,21 @@ setlocal
 
 set "SCRIPT_DIR=%~dp0"
 set "WEB_DIR=%SCRIPT_DIR%.."
+set "LOG_FILE=%WEB_DIR%\logs\daily_job_refresh.log"
 
 cd /d "%WEB_DIR%"
-rem Primary refresh (auto source). Keep location hint, but do not enforce strict match.
-".\.venv\Scripts\python.exe" manage.py fetch_jobs --source auto --query "software developer" --location "India" --limit 100 --clear
 
-rem If source APIs fail (or return too little), fall back to Remotive for a fresh global set.
+echo [%date% %time%] Starting daily job refresh... >> "%LOG_FILE%"
+
+rem Run the Django management command to refresh jobs for India
+".\.venv\Scripts\python.exe" manage.py refresh_daily_jobs --force --location "India" --limit 100 >> "%LOG_FILE%" 2>&1
+
 if errorlevel 1 (
-  ".\.venv\Scripts\python.exe" manage.py fetch_jobs --source remotive --limit 100 --clear
+  echo [%date% %time%] Daily job refresh failed! >> "%LOG_FILE%"
+  exit /b 1
+) else (
+  echo [%date% %time%] Daily job refresh completed successfully! >> "%LOG_FILE%"
+  exit /b 0
 )
 
 endlocal

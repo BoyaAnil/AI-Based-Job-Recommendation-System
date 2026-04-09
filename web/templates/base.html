@@ -14,24 +14,29 @@
             <a class="logo" href="{% url 'home' %}">AI Resume Analyzer</a>
             <nav class="site-nav">
                 <a class="nav-link{% if request.resolver_match.url_name == 'job_list' %} is-active{% endif %}" href="{% url 'job_list' %}">Jobs</a>
+                <a class="nav-link{% if request.resolver_match.url_name == 'fake_job_detector' %} is-active{% endif %}" href="{% url 'fake_job_detector' %}">Fake Job Check</a>
+                <a class="nav-link{% if request.resolver_match.url_name == 'interview_simulator' %} is-active{% endif %}" href="{% url 'interview_simulator' %}">Interview Simulator</a>
                 {% if user.is_authenticated %}
                     <a class="nav-link{% if request.resolver_match.url_name == 'resume_upload' %} is-active{% endif %}" href="{% url 'resume_upload' %}">Upload Resume</a>
                     <a class="nav-link{% if request.resolver_match.url_name == 'recommendations' %} is-active{% endif %}" href="{% url 'recommendations' %}">Recommendations</a>
                     <a class="nav-link{% if request.resolver_match.url_name == 'saved_jobs' %} is-active{% endif %}" href="{% url 'saved_jobs' %}">Saved Jobs</a>
-                    <a class="nav-link{% if request.resolver_match.url_name == 'profile' %} is-active{% endif %}" href="{% url 'profile' %}">Profile</a>
                     {% if user.is_staff %}
                         <a class="nav-link{% if request.resolver_match.url_name == 'admin_dashboard' %} is-active{% endif %}" href="{% url 'admin_dashboard' %}">Admin</a>
                     {% endif %}
-                    <form id="logout-form" action="{% url 'logout' %}" method="post" style="display:none;">
-                        {% csrf_token %}
-                    </form>
-                    <a class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
+                    <div class="user-menu" tabindex="0">
+                        <a class="nav-link profile-link{% if request.resolver_match.url_name == 'profile' %} is-active{% endif %}" href="{% url 'profile' %}">Profile</a>
+                        <div class="user-menu-dropdown">
+                            <form id="logout-form" action="{% url 'logout' %}" method="post" style="display:none;">
+                                {% csrf_token %}
+                            </form>
+                            <a class="nav-link logout-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
+                        </div>
+                    </div>
                 {% else %}
                     <a class="nav-link{% if request.resolver_match.url_name == 'login' %} is-active{% endif %}" href="{% url 'login' %}">Login</a>
                     <a class="nav-link{% if request.resolver_match.url_name == 'password_reset' or request.resolver_match.url_name == 'password_reset_done' or request.resolver_match.url_name == 'password_reset_confirm' or request.resolver_match.url_name == 'password_reset_complete' or request.resolver_match.url_name == 'forgot_password' %} is-active{% endif %}" href="{% url 'forgot_password' %}">Forgot Password</a>
                     <a class="nav-link{% if request.resolver_match.url_name == 'register' %} is-active{% endif %}" href="{% url 'register' %}">Register</a>
                 {% endif %}
-                <button id="theme-toggle" aria-label="Toggle theme" class="theme-toggle">🌙</button>
             </nav>
         </div>
     </header>

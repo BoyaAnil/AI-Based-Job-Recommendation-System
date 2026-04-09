@@ -1,0 +1,175 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<section class="card">
+    <h2>Fake Job Detector</h2>
+    <p class="muted">Paste a job description, a recruiter message, a job link, or both. The detector checks common scam signals before you apply.</p>
+</section>
+
+<section class="card mt-4">
+    <form method="post" class="form">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="form-alert">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="{{ form.job_title.id_for_label }}">{{ form.job_title.label }}</label>
+                {{ form.job_title }}
+                {% for error in form.job_title.errors %}<div class="form-alert"><p>{{ error }}</p></div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.company.id_for_label }}">{{ form.company.label }}</label>
+                {{ form.company }}
+                {% for error in form.company.errors %}<div class="form-alert"><p>{{ error }}</p></div>{% endfor %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
+                {{ form.location }}
+                {% for error in form.location.errors %}<div class="form-alert"><p>{{ error }}</p></div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.salary_range.id_for_label }}">{{ form.salary_range.label }}</label>
+                {{ form.salary_range }}
+                {% for error in form.salary_range.errors %}<div class="form-alert"><p>{{ error }}</p></div>{% endfor %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.apply_link.id_for_label }}">{{ form.apply_link.label }}</label>
+            {{ form.apply_link }}
+            <p class="muted">{{ form.apply_link.help_text }}</p>
+            {% for error in form.apply_link.errors %}<div class="form-alert"><p>{{ error }}</p></div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+            <p class="muted">{{ form.description.help_text }}</p>
+            {% for error in form.description.errors %}<div class="form-alert"><p>{{ error }}</p></div>{% endfor %}
+        </div>
+
+        <div class="button-group">
+            <button class="btn primary" type="submit">Analyze Job</button>
+        </div>
+    </form>
+</section>
+
+{% if analysis %}
+<section class="card mt-4 fraud-result fraud-{{ analysis.risk_level }}">
+    <div class="fraud-result-header">
+        <div>
+            <p class="fraud-kicker">Detection Result</p>
+            <h3>{{ analysis.risk_label }}</h3>
+            <p>{{ analysis.summary }}</p>
+            <p><strong>Verdict:</strong> {{ analysis.verdict }}</p>
+        </div>
+        <div class="risk-badge risk-{{ analysis.risk_level }}">{{ analysis.risk_score }}/100</div>
+    </div>
+
+    <div class="fraud-meta mt-3">
+        <div><strong>Domain:</strong> {{ analysis.link_analysis.domain|default:"Not provided" }}</div>
+        {% if analysis.link_analysis.page_title %}<div><strong>Page Title:</strong> {{ analysis.link_analysis.page_title }}</div>{% endif %}
+        {% if analysis.link_analysis.final_url %}<div><strong>Verified URL:</strong> <a href="{{ analysis.link_analysis.final_url }}" target="_blank" rel="noopener noreferrer">{{ analysis.link_analysis.final_url }}</a></div>{% endif %}
+        {% if analysis.link_analysis.fetch_note %}<div><strong>Link Note:</strong> {{ analysis.link_analysis.fetch_note }}</div>{% endif %}
+    </div>
+</section>
+
+<!-- Risk Score Visualization -->
+<section class="card mt-4">
+    <h3>Risk Analysis Visualization</h3>
+    <div class="visualization-container">
+        <div class="risk-gauge">
+            <div class="gauge-background">
+                <div class="gauge-fill risk-{{ analysis.risk_level }}" style="width: {{ analysis.risk_score }}%"></div>
+            </div>
+            <div class="gauge-labels">
+                <span>Low Risk</span>
+                <span>Medium Risk</span>
+                <span>High Risk</span>
+            </div>
+        </div>
+
+        <div class="risk-breakdown mt-4">
+            <h4>Risk Factor Breakdown</h4>
+            <div class="risk-categories">
+                {% for flag in analysis.flags %}
+                <div class="risk-factor risk-category-{{ flag.category }}">
+                    <div class="factor-header">
+                        <span class="factor-label">{{ flag.label }}</span>
+                        <span class="factor-points">+{{ flag.points }}</span>
+                    </div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: {{ flag.points|add:0 }}%"></div>
+                    </div>
+                    <div class="factor-detail">{{ flag.detail }}</div>
+                    <div class="factor-category">{{ flag.category|title }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="risk-summary mt-4">
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ analysis.flags|length }}</div>
+                    <div class="stat-label">Risk Signals</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ analysis.positive_signals|length }}</div>
+                    <div class="stat-label">Trust Signals</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ analysis.risk_score }}</div>
+                    <div class="stat-label">Total Score</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="grid mt-4 detector-grid">
+    <div class="card">
+        <h3>Red Flags</h3>
+        <ul class="insight-list">
+            {% for flag in analysis.flags %}
+                <li>
+                    <strong>{{ flag.label }} (+{{ flag.points }})</strong><br>
+                    {{ flag.detail }}
+                </li>
+            {% empty %}
+                <li>No major fake-job indicators were detected in the submitted data.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="card">
+        <h3>Positive Signals</h3>
+        <ul class="insight-list">
+            {% for signal in analysis.positive_signals %}
+                <li>{{ signal }}</li>
+            {% empty %}
+                <li>No strong trust signals were available from the submitted data.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="card">
+        <h3>Recommended Next Steps</h3>
+        <ul class="insight-list">
+            {% for item in analysis.recommendations %}
+                <li>{{ item }}</li>
+            {% empty %}
+                <li>Verify the employer manually before you apply.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

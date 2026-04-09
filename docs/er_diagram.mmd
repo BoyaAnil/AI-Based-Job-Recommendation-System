@@ -1,0 +1,76 @@
+erDiagram
+    AUTH_USER ||--|| USERPROFILE : has_profile
+    AUTH_USER ||--o{ RESUME : uploads
+    AUTH_USER ||--o{ SAVEDJOB : saves
+    JOB ||--o{ SAVEDJOB : saved_by
+    RESUME ||--o{ MATCHRESULT : compared_in
+    JOB ||--o{ MATCHRESULT : target_job
+    RESUME ||--o{ RECOMMENDATION : receives
+    JOB ||--o{ RECOMMENDATION : recommended_job
+
+    AUTH_USER {
+        int id PK
+        string username
+        string email
+    }
+
+    USERPROFILE {
+        int id PK
+        int user_id FK UNIQUE
+        string profile_photo
+        string bio
+        string phone
+        string location
+    }
+
+    RESUME {
+        int id PK
+        int user_id FK
+        string original_file
+        string original_filename
+        text raw_text
+        json extracted_json
+    }
+
+    JOB {
+        int id PK
+        string title
+        string company
+        string location
+        json required_skills
+        string apply_link
+    }
+
+    MATCHRESULT {
+        int id PK
+        int resume_id FK
+        int job_id FK
+        int score
+        json matched_skills
+        json missing_skills
+    }
+
+    RECOMMENDATION {
+        int id PK
+        int resume_id FK
+        int job_id FK
+        int score
+        text reason
+        datetime created_at
+    }
+
+    SAVEDJOB {
+        int id PK
+        int user_id FK
+        int job_id FK
+        datetime created_at
+        string UNIQUE_user_id_job_id
+    }
+
+    JOBREFRESHSTATE {
+        int id PK
+        string key UNIQUE
+        datetime last_attempted_at
+        datetime last_success_at
+        string last_source
+    }

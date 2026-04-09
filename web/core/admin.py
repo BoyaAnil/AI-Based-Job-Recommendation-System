@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.utils import timezone
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 
 from .models import Job, MatchResult, Recommendation, Resume, SavedJob
 
@@ -111,7 +111,7 @@ class JobAdmin(admin.ModelAdmin):
     def salary_display(self, obj):
         if obj.salary_range:
             return format_html('<span style="color: #10b981; font-weight: 600;">{}</span>', obj.salary_range)
-        return format_html('<span style="color: #6b7280;">Not specified</span>')
+        return format_html('<span style="color: #6b7280;">{}</span>', "Not specified")
 
     salary_display.short_description = "Salary"
 
@@ -122,25 +122,25 @@ class JobAdmin(admin.ModelAdmin):
                 '<span style="background: #6366f1; color: white; padding: 3px 8px; border-radius: 12px; font-weight: 600;">{} skills</span>',
                 count,
             )
-        return format_html('<span style="color: #9ca3af;">None</span>')
+        return format_html('<span style="color: #9ca3af;">{}</span>', "None")
 
     skills_count.short_description = "Skills"
 
     def has_apply_link(self, obj):
         if obj.apply_link:
             return format_html('<a href="{}" target="_blank" style="color: #6366f1; text-decoration: none;">Link</a>', obj.apply_link)
-        return format_html('<span style="color: #ef4444;">No Link</span>')
+        return format_html('<span style="color: #ef4444;">{}</span>', "No Link")
 
     has_apply_link.short_description = "Apply Link"
 
     def created_status(self, obj):
         if not obj.created_at:
-            return format_html('<span style="color: #f59e0b;">Unsaved</span>')
+            return format_html('<span style="color: #f59e0b;">{}</span>', "Unsaved")
         delta = timezone.now() - obj.created_at
         if delta.days == 0:
-            return format_html('<span style="color: #10b981; font-weight: 600;">Today</span>')
+            return format_html('<span style="color: #10b981; font-weight: 600;">{}</span>', "Today")
         if delta.days == 1:
-            return format_html('<span style="color: #3b82f6;">Yesterday</span>')
+            return format_html('<span style="color: #3b82f6;">{}</span>', "Yesterday")
         if delta.days < 7:
             return format_html('<span style="color: #8b5cf6;">{} days ago</span>', delta.days)
         return format_html('<span style="color: #6b7280;">{} days ago</span>', delta.days)
@@ -149,13 +149,18 @@ class JobAdmin(admin.ModelAdmin):
 
     def skills_preview(self, obj):
         if obj.required_skills:
-            skills_html = " ".join([
-                f'<span style="background: #0ea5e9; color: white; padding: 4px 10px; border-radius: 20px; margin: 3px; display: inline-block; font-size: 12px;">{skill}</span>'
-                for skill in obj.required_skills[:10]
-            ])
+            skills_html = format_html_join(
+                "",
+                '<span style="background: #0ea5e9; color: white; padding: 4px 10px; border-radius: 20px; margin: 3px; display: inline-block; font-size: 12px;">{}</span>',
+                ((skill,) for skill in obj.required_skills[:10]),
+            )
             if len(obj.required_skills) > 10:
-                skills_html += f'<br/><small style="color: #6b7280;">+{len(obj.required_skills) - 10} more skills</small>'
-            return format_html(skills_html)
+                return format_html(
+                    "{}<br/><small style=\"color: #6b7280;\">+{} more skills</small>",
+                    skills_html,
+                    len(obj.required_skills) - 10,
+                )
+            return skills_html
         return "No skills specified"
 
     skills_preview.short_description = "Skills Preview"

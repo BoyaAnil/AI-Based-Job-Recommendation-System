@@ -213,7 +213,13 @@
                             {% else %}
                                 <p><small>⏳ Pending parse</small></p>
                             {% endif %}
-                            <a class="btn secondary" href="{% url 'resume_detail' resume.id %}">View Details</a>
+                            <div class="resume-card-actions">
+                                <a class="btn secondary" href="{% url 'resume_detail' resume.id %}">View Details</a>
+                                <form method="post" action="{% url 'resume_delete' resume.id %}" class="resume-delete-form" onsubmit="return confirm('Delete this resume from your profile?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn danger">Delete</button>
+                                </form>
+                            </div>
                         </div>
                     {% endfor %}
                 </div>
@@ -244,6 +250,15 @@
     .profile-container {
         max-width: 900px;
         margin: 0 auto;
+    }
+
+    .profile-container h1,
+    .profile-container h2,
+    .profile-container h3,
+    .profile-container h4,
+    .profile-container h5,
+    .profile-container h6 {
+        color: white;
     }
 
     .profile-header {
@@ -465,6 +480,18 @@
 
     .resume-card {
         text-align: center;
+    }
+
+    .resume-card-actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+    }
+
+    .resume-delete-form {
+        margin: 0;
     }
 
     .text-muted {
