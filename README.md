@@ -1,4 +1,4 @@
-﻿# AI-Powered Resume Analyzer & Job Recommendation System
+﻿# AI Based Job Recommendation System
 
 Full-stack monorepo with Django web app and Flask AI microservice.
 
