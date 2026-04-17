@@ -9,8 +9,8 @@ cd /d "%WEB_DIR%"
 
 echo [%date% %time%] Starting daily job refresh... >> "%LOG_FILE%"
 
-rem Run the Django management command to refresh jobs for India
-".\.venv\Scripts\python.exe" manage.py refresh_daily_jobs --force --location "India" --limit 100 >> "%LOG_FILE%" 2>&1
+rem Run the Django management command to refresh remote foreign jobs plus India-wide jobs.
+".\.venv\Scripts\python.exe" manage.py refresh_daily_jobs --force --location "Remote ^| India" --limit 100 >> "%LOG_FILE%" 2>&1
 
 if errorlevel 1 (
   echo [%date% %time%] Daily job refresh failed! >> "%LOG_FILE%"

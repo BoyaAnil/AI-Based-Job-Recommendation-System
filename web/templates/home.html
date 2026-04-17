@@ -1,46 +1,67 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<section class="hero">
-    <div>
-        <h1>AI-Powered Resume Analyzer</h1>
-        <p>Upload your resume, extract key information, and get data-driven job recommendations instantly.</p>
-        <div class="hero-actions">
-            {% if user.is_authenticated %}
-                <a class="btn" href="{% url 'resume_upload' %}">Upload Resume</a>
-                <a class="btn secondary" href="{% url 'job_list' %}">Browse Jobs</a>
-                <a class="btn secondary" href="{% url 'interview_simulator' %}">Start Interview</a>
-                <a class="btn secondary" href="{% url 'fake_job_detector' %}">Check Fake Jobs</a>
-            {% else %}
-                <a class="btn" href="{% url 'register' %}">Get Started</a>
-                <a class="btn secondary" href="{% url 'login' %}">Login</a>
-                <a class="btn secondary" href="{% url 'fake_job_detector' %}">Check Fake Jobs</a>
-                <a class="btn secondary" href="{% url 'forgot_password' %}">Forgot Password</a>
-            {% endif %}
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">AI Resume Analyzer</p>
+            <h1 class="page-title">One workspace for resumes, jobs, safety checks, and interview practice.</h1>
+            <p class="page-subtitle">Upload your resume, match it against live roles, screen suspicious listings, and practice under pressure with the interview simulator.</p>
+            <div class="page-hero-tags">
+                <span>Resume parsing</span>
+                <span>ATS and skill-gap analysis</span>
+                <span>Remote + India-wide job discovery</span>
+            </div>
+            <div class="button-group mt-4">
+                {% if user.is_authenticated %}
+                    <a class="btn primary" href="{% url 'resume_upload' %}">Upload Resume</a>
+                    <a class="btn secondary" href="{% url 'job_list' %}">Browse Jobs</a>
+                    <a class="btn secondary" href="{% url 'interview_simulator' %}">Start Interview</a>
+                    <a class="btn secondary" href="{% url 'fake_job_detector' %}">Check Fake Jobs</a>
+                {% else %}
+                    <a class="btn primary" href="{% url 'register' %}">Create Account</a>
+                    <a class="btn secondary" href="{% url 'login' %}">Login</a>
+                    <a class="btn secondary" href="{% url 'fake_job_detector' %}">Check Fake Jobs</a>
+                {% endif %}
+            </div>
         </div>
-    </div>
-</section>
+        <div class="page-hero-panel">
+            <div class="page-hero-metric">
+                <strong>Smarter job targeting</strong>
+                <span>Search remote foreign roles, India-wide openings, and role-specific recommendations from one place.</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Deeper resume analysis</strong>
+                <span>Measure ATS coverage, missing keywords, and role-fit gaps before you apply.</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Practice under pressure</strong>
+                <span>The interview simulator adapts the question mix and difficulty as your answers improve.</span>
+            </div>
+        </div>
+    </section>
 
-<section class="grid">
-    <div class="card">
-        <h3>Resume Parsing</h3>
-        <p>Extract skills, education, experience, and projects using offline-friendly NLP.</p>
-    </div>
-    <div class="card">
-        <h3>Job Matching</h3>
-        <p>Get match scores and skill gaps compared to role requirements.</p>
-    </div>
-    <div class="card">
-        <h3>Recommendations</h3>
-        <p>Rank open roles by similarity and receive actionable improvements.</p>
-    </div>
-    <div class="card">
-        <h3>Interview Simulator</h3>
-        <p>Practice adaptive interview rounds with interruptions, stress prompts, and live scoring.</p>
-    </div>
-    <div class="card">
-        <h3>Fake Job Detection</h3>
-        <p>Check suspicious job descriptions and job links for common scam signals before you apply.</p>
-    </div>
-</section>
+    <section class="page-grid">
+        <article class="card page-card">
+            <p class="page-kicker">Resume</p>
+            <h3>Parse and structure resume data</h3>
+            <p class="muted">Extract skills, education, experience, and project signals from PDF or DOCX files.</p>
+        </article>
+        <article class="card page-card">
+            <p class="page-kicker">Matching</p>
+            <h3>Compare resume fit against jobs</h3>
+            <p class="muted">See ATS score, matched skills, missing keywords, and improvement tips for each role.</p>
+        </article>
+        <article class="card page-card">
+            <p class="page-kicker">Discovery</p>
+            <h3>Find roles that match your search</h3>
+            <p class="muted">Browse saved jobs, recommendation results, remote work-from-home roles, and India-wide openings.</p>
+        </article>
+        <article class="card page-card">
+            <p class="page-kicker">Safety</p>
+            <h3>Screen suspicious listings fast</h3>
+            <p class="muted">Review red flags, trust signals, and risk breakdowns before you spend time applying.</p>
+        </article>
+    </section>
+</div>
 {% endblock %}

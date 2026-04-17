@@ -1,22 +1,46 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<h2>Saved Jobs</h2>
-<div class="grid">
-    {% for item in saved_jobs %}
-        <div class="card">
-            <h3>{{ item.job.title }}</h3>
-            <p>{{ item.job.company }} · {{ item.job.location }}</p>
-            <p class="muted">Saved on {{ item.created_at|date:"Y-m-d" }}</p>
-            <div class="button-group mt-3">
-                {% if item.job.apply_link %}
-                    <a href="{{ item.job.apply_link }}" target="_blank" class="btn">Apply Now</a>
-                {% endif %}
-                <a class="btn secondary" href="{% url 'job_detail' item.job.id %}">View Job</a>
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Saved Jobs</p>
+            <h1 class="page-title">Keep the roles worth coming back to.</h1>
+            <p class="page-subtitle">Review the jobs you bookmarked, reopen the detail page, and jump straight to the application link when you are ready.</p>
+            <div class="page-hero-tags">
+                <span>{{ saved_jobs|length }} saved role{{ saved_jobs|length|pluralize }}</span>
+                <span>Fast revisit flow</span>
+                <span>One-click apply access</span>
             </div>
         </div>
-    {% empty %}
-        <p>No saved jobs yet.</p>
-    {% endfor %}
+        <div class="page-hero-panel">
+            <div class="page-hero-metric">
+                <strong>Bookmark strategy</strong>
+                <span>Save promising jobs first, then use job detail pages to run match and safety checks before applying.</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-grid">
+        {% for item in saved_jobs %}
+            <article class="card page-card">
+                <p class="page-kicker">Saved Role</p>
+                <h3>{{ item.job.title }}</h3>
+                <div class="detail-list mt-3">
+                    <div class="detail-item"><strong>Company:</strong> {{ item.job.company }}</div>
+                    <div class="detail-item"><strong>Location:</strong> {{ item.job.location }}</div>
+                    <div class="detail-item"><strong>Saved:</strong> {{ item.created_at|date:"Y-m-d" }}</div>
+                </div>
+                <div class="button-group mt-4">
+                    {% if item.job.apply_link %}
+                        <a href="{{ item.job.apply_link }}" target="_blank" class="btn primary">Apply Now</a>
+                    {% endif %}
+                    <a class="btn secondary" href="{% url 'job_detail' item.job.id %}">View Job</a>
+                </div>
+            </article>
+        {% empty %}
+            <div class="page-empty">No saved jobs yet.</div>
+        {% endfor %}
+    </section>
 </div>
 {% endblock %}

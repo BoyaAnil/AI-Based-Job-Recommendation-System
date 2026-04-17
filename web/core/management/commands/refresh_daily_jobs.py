@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Refresh jobs in database daily from job APIs (India-focused)"
+    help = "Refresh jobs in database daily from job APIs."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -26,7 +26,7 @@ class Command(BaseCommand):
             '--location',
             type=str,
             default=None,
-            help='Job location (default: India)',
+            help='Job location target (default: Remote | India). Use | to combine targets.',
         )
         parser.add_argument(
             '--limit',

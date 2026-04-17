@@ -1,26 +1,49 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<h2>Manage Jobs</h2>
-<div class="card">
-    <a class="btn" href="{% url 'admin_job_create' %}">Add Job</a>
-</div>
-
-<div class="grid">
-    {% for job in jobs %}
-        <div class="card">
-            <h4>{{ job.title }}</h4>
-            <p>{{ job.company }} · {{ job.location }}</p>
-            <div class="actions">
-                <a class="btn secondary" href="{% url 'admin_job_edit' job.id %}">Edit</a>
-                <form method="post" action="{% url 'admin_job_delete' job.id %}" class="inline-form">
-                    {% csrf_token %}
-                    <button class="btn danger" type="submit">Delete</button>
-                </form>
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Admin Jobs</p>
+            <h1 class="page-title">Manage the job catalog.</h1>
+            <p class="page-subtitle">Create, update, and remove jobs from the internal database without leaving the admin workflow.</p>
+        </div>
+        <div class="page-hero-panel">
+            <div class="page-hero-metric">
+                <strong>Total jobs</strong>
+                <span>{{ jobs|length }}</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Quick action</strong>
+                <span>Add a new role or edit an existing one directly from this page.</span>
             </div>
         </div>
-    {% empty %}
-        <p>No jobs yet.</p>
-    {% endfor %}
+    </section>
+
+    <div class="card page-card">
+        <a class="btn primary" href="{% url 'admin_job_create' %}">Add Job</a>
+    </div>
+
+    <section class="page-grid">
+        {% for job in jobs %}
+            <article class="card page-card">
+                <p class="page-kicker">Job Record</p>
+                <h3>{{ job.title }}</h3>
+                <div class="detail-list mt-3">
+                    <div class="detail-item"><strong>Company:</strong> {{ job.company }}</div>
+                    <div class="detail-item"><strong>Location:</strong> {{ job.location }}</div>
+                </div>
+                <div class="button-group mt-4">
+                    <a class="btn secondary" href="{% url 'admin_job_edit' job.id %}">Edit</a>
+                    <form method="post" action="{% url 'admin_job_delete' job.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <button class="btn danger" type="submit">Delete</button>
+                    </form>
+                </div>
+            </article>
+        {% empty %}
+            <div class="page-empty">No jobs yet.</div>
+        {% endfor %}
+    </section>
 </div>
 {% endblock %}

@@ -1,13 +1,54 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="card narrow">
-    <h2>Upload Resume</h2>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn" type="submit">Upload</button>
-    </form>
-    <p class="muted">Accepted formats: PDF, DOCX.</p>
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Resume Upload</p>
+            <h1 class="page-title">Load the resume that powers matching and recommendations.</h1>
+            <p class="page-subtitle">Upload a PDF or DOCX file to extract skills, education, experience, and project signals for the rest of the app.</p>
+            <div class="page-hero-tags">
+                <span>PDF or DOCX</span>
+                <span>ATS-ready parsing</span>
+                <span>Recommendation source</span>
+            </div>
+        </div>
+        <div class="page-hero-panel">
+            <div class="page-hero-metric">
+                <strong>Accepted formats</strong>
+                <span>Upload PDF or DOCX files only.</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Why it matters</strong>
+                <span>Your uploaded resume is used for match scoring, recommendations, and the interview simulator.</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-shell two-column">
+        <div class="card page-card narrow">
+            <div class="page-section-head">
+                <div>
+                    <p class="page-kicker">Upload Form</p>
+                    <h2>Add a new resume</h2>
+                </div>
+            </div>
+            <form method="post" enctype="multipart/form-data" class="stacked-form mt-3">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="btn primary" type="submit">Upload Resume</button>
+            </form>
+        </div>
+
+        <aside class="card page-card">
+            <p class="page-kicker">Notes</p>
+            <h3>Before you upload</h3>
+            <div class="detail-list mt-3">
+                <div class="detail-item"><strong>Formats:</strong> PDF and DOCX only.</div>
+                <div class="detail-item"><strong>Best results:</strong> Use a clean resume with clear section headings.</div>
+                <div class="detail-item"><strong>Next step:</strong> After upload, open the resume detail page to inspect extracted data and run ATS checks.</div>
+            </div>
+        </aside>
+    </section>
 </div>
 {% endblock %}

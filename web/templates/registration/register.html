@@ -14,39 +14,60 @@
         <form method="post" class="auth-form" novalidate>
             {% csrf_token %}
 
-            {% if form.non_field_errors %}
+            {% if messages %}
                 <div class="form-alert" role="alert">
-                    {% for error in form.non_field_errors %}
-                        <p>{{ error }}</p>
+                    {% for message in messages %}
+                        <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</p>
                     {% endfor %}
                 </div>
             {% endif %}
 
-            {% for field in form %}
-                <div class="auth-field {% if field.errors %}has-error{% endif %}">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-
-                    {% if field.help_text %}
-                        <div class="field-help{% if field.name == 'password1' %} password-rules{% endif %}">
-                            {{ field.help_text|safe }}
-                        </div>
-                    {% endif %}
-
-                    {% if field.errors %}
-                        <ul class="field-errors">
-                            {% for error in field.errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
+            {% if otp_sent %}
+                <div class="form-alert" role="alert">
+                    <p>OTP sent to <strong>{{ registration_email }}</strong>. Enter it below to complete registration.</p>
                 </div>
-            {% endfor %}
+                <div class="auth-field">
+                    <label for="id_otp">OTP</label>
+                    <input type="text" name="otp" id="id_otp" placeholder="Enter 6-digit OTP" required maxlength="6">
+                </div>
+                <button class="auth-submit" type="submit">Verify OTP</button>
+                <p class="auth-switch">Need to change details? <a href="{% url 'register' %}?reset=1">Restart registration</a></p>
+            {% else %}
+                <p class="auth-note">After you submit, an OTP will be sent to your email to verify your account.</p>
 
-            <button class="auth-submit" type="submit">Register</button>
+                {% if form.non_field_errors %}
+                    <div class="form-alert" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% for field in form %}
+                    <div class="auth-field {% if field.errors %}has-error{% endif %}">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+
+                        {% if field.help_text %}
+                            <div class="field-help{% if field.name == 'password1' %} password-rules{% endif %}">
+                                {{ field.help_text|safe }}
+                            </div>
+                        {% endif %}
+
+                        {% if field.errors %}
+                            <ul class="field-errors">
+                                {% for error in field.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <button class="auth-submit" type="submit">Register</button>
+                <p class="auth-switch">Already have an account? <a href="{% url 'login' %}">Login</a></p>
+            {% endif %}
         </form>
-
-        <p class="auth-switch">Already have an account? <a href="{% url 'login' %}">Login</a></p>
     </div>
 </section>
 {% endblock %}

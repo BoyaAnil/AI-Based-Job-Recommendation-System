@@ -1,66 +1,114 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="card">
-    <h2>{{ job.title }}</h2>
-    <p><strong>Company:</strong> {{ job.company }}</p>
-    <p><strong>Location:</strong> {{ job.location }}</p>
-    <p><strong>Level:</strong> {{ job.level }}</p>
-    <p><strong>Salary:</strong> {{ job.salary_range }}</p>
-    <p><strong>Required Skills:</strong> {{ job.required_skills|join:", " }}</p>
-    <p>{{ job.description }}</p>
-    <div class="button-group mt-4">
-        {% if job.apply_link %}
-            <a href="{{ job.apply_link }}" target="_blank" class="btn">Apply Now</a>
-        {% else %}
-            <p class="text-gray">No apply link available</p>
-        {% endif %}
-        <a class="btn secondary" href="{% url 'fake_job_detector' %}">Check Another Job</a>
-        {% if user.is_authenticated %}
-            <button class="btn secondary" id="save-job-btn" data-saved="{{ is_saved|yesno:'true,false' }}">
-                {% if is_saved %}Unsave Job{% else %}Save Job{% endif %}
-            </button>
-        {% endif %}
-    </div>
-</div>
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Job Detail</p>
+            <h1 class="page-title">{{ job.title }}</h1>
+            <p class="page-subtitle">{{ job.description|truncatechars:260 }}</p>
+            <div class="page-hero-tags">
+                <span>{{ job.company }}</span>
+                <span>{{ job.location }}</span>
+                <span>{{ job.level }}</span>
+            </div>
+        </div>
+        <div class="page-hero-panel">
+            <div class="page-hero-metric">
+                <strong>Salary</strong>
+                <span>{{ job.salary_range|default:"Not provided" }}</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Required Skills</strong>
+                <span>{{ job.required_skills|join:", "|default:"Not listed" }}</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Application</strong>
+                <span>{% if job.apply_link %}External apply link available{% else %}No apply link available{% endif %}</span>
+            </div>
+        </div>
+    </section>
 
-<div class="card mt-4">
-    <h3>Fake Job Detection</h3>
-    <p class="muted">Analyze this listing for scam signals using its details and application link.</p>
-    <button class="btn secondary" id="fake-check-btn">Analyze Listing Safety</button>
-    <div id="fake-check-result" class="match-result mt-3"></div>
-</div>
+    <section class="page-shell two-column">
+        <div class="page-stack">
+            <div class="card page-card">
+                <div class="page-section-head">
+                    <div>
+                        <p class="page-kicker">Role Overview</p>
+                        <h2>Job details</h2>
+                    </div>
+                </div>
+                <div class="detail-list mt-3">
+                    <div class="detail-item"><strong>Company:</strong> {{ job.company }}</div>
+                    <div class="detail-item"><strong>Location:</strong> {{ job.location }}</div>
+                    <div class="detail-item"><strong>Level:</strong> {{ job.level }}</div>
+                    <div class="detail-item"><strong>Salary:</strong> {{ job.salary_range|default:"Not provided" }}</div>
+                    <div class="detail-item"><strong>Required Skills:</strong> {{ job.required_skills|join:", "|default:"Not listed" }}</div>
+                </div>
+                <div class="result-surface mt-4">{{ job.description }}</div>
+                <div class="button-group mt-4">
+                    {% if job.apply_link %}
+                        <a href="{{ job.apply_link }}" target="_blank" class="btn primary">Apply Now</a>
+                    {% endif %}
+                    <a class="btn secondary" href="{% url 'fake_job_detector' %}">Check Another Job</a>
+                    {% if user.is_authenticated %}
+                        <button class="btn secondary" id="save-job-btn" data-saved="{{ is_saved|yesno:'true,false' }}">
+                            {% if is_saved %}Unsave Job{% else %}Save Job{% endif %}
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
 
-{% if user.is_authenticated %}
-<div class="card">
-    <h3>Check Match</h3>
-    {% if resumes %}
-        <select id="resume-select">
-            {% for resume in resumes %}
-                <option value="{{ resume.id }}">{{ resume.display_name }} ({{ resume.uploaded_at|date:"Y-m-d" }})</option>
-            {% endfor %}
-        </select>
-        <button class="btn" id="match-btn">Check Match</button>
-        <div id="match-result" class="match-result"></div>
-    {% else %}
-        <p>You need to <a href="{% url 'resume_upload' %}">upload a resume</a> to check match.</p>
-    {% endif %}
-</div>
-<div class="card">
-    <h3>Skill Gap Analysis</h3>
-    {% if resumes %}
-        <button class="btn secondary" id="skill-gap-btn">Analyze Skill Gaps</button>
-        <div id="skill-gap-result" class="match-result"></div>
-    {% else %}
-        <p>Upload a resume to analyze skill gaps.</p>
-    {% endif %}
-</div>
-{% else %}
-<div class="card">
-    <p>Please <a href="{% url 'login' %}">login</a> to check match.</p>
-</div>
-{% endif %}
+            <div class="card page-card">
+                <p class="page-kicker">Safety Review</p>
+                <h3>Fake Job Detection</h3>
+                <p class="muted">Analyze this listing for scam signals using its details and application link.</p>
+                <button class="btn secondary mt-3" id="fake-check-btn">Analyze Listing Safety</button>
+                <div id="fake-check-result" class="match-result mt-3"></div>
+            </div>
+        </div>
 
+        <aside class="page-stack">
+            {% if user.is_authenticated %}
+                <div class="card page-card">
+                    <p class="page-kicker">Resume Match</p>
+                    <h3>Check match score</h3>
+                    {% if resumes %}
+                        <select id="resume-select">
+                            {% for resume in resumes %}
+                                <option value="{{ resume.id }}">{{ resume.display_name }} ({{ resume.uploaded_at|date:"Y-m-d" }})</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn primary mt-3" id="match-btn">Check Match</button>
+                        <div id="match-result" class="match-result mt-3"></div>
+                    {% else %}
+                        <div class="page-empty">You need to <a href="{% url 'resume_upload' %}">upload a resume</a> to check match.</div>
+                    {% endif %}
+                </div>
+
+                <div class="card page-card">
+                    <p class="page-kicker">Skill Gaps</p>
+                    <h3>See what is missing</h3>
+                    {% if resumes %}
+                        <button class="btn secondary" id="skill-gap-btn">Analyze Skill Gaps</button>
+                        <div id="skill-gap-result" class="match-result mt-3"></div>
+                    {% else %}
+                        <div class="page-empty">Upload a resume to analyze skill gaps.</div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="card page-card">
+                    <p class="page-kicker">Login Required</p>
+                    <h3>Sign in to run match analysis</h3>
+                    <div class="page-empty">Please <a href="{% url 'login' %}">login</a> to check match and skill gaps.</div>
+                </div>
+            {% endif %}
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
 function getCookie(name) {
     let cookieValue = null;

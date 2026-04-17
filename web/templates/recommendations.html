@@ -1,73 +1,133 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<h2>Recommended Jobs</h2>
-<div class="card">
-    <form method="get">
-        <label for="resume_id">Select Resume</label>
-        <select name="resume_id" id="resume_id">
-            <option value="">-- Choose --</option>
-            {% for resume in resumes %}
-                <option value="{{ resume.id }}" {% if selected_resume and resume.id == selected_resume.id %}selected{% endif %}>
-                    {{ resume.display_name }} ({{ resume.uploaded_at|date:"Y-m-d" }})
-                </option>
-            {% endfor %}
-        </select>
-        <div class="form-row mt-3">
-            <div class="form-group">
-                <label for="api_query">Job Role</label>
-                <input type="text" id="api_query" name="api_query" value="{{ api_query|default:'software developer' }}">
-            </div>
-            <div class="form-group">
-                <label for="api_location">Location</label>
-                <input type="text" id="api_location" name="api_location" value="{{ api_location|default:'India' }}">
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Recommendations</p>
+            <h1 class="page-title">Build a ranked job list around your resume.</h1>
+            <p class="page-subtitle">Select a resume, choose the role and location targets, and merge fresh API jobs with the database before the recommendation engine scores them.</p>
+            <div class="page-hero-tags">
+                <span>Resume-aware ranking</span>
+                <span>Remote + India-wide intake</span>
+                <span>Database + API pool</span>
             </div>
         </div>
-        <div class="form-row mt-3">
-            <div class="form-group">
-                <label for="api_limit">Limit</label>
-                <input type="number" id="api_limit" name="api_limit" min="5" max="150" value="{{ api_limit|default:50 }}">
+        <div class="page-hero-panel">
+            <div class="page-hero-metric">
+                <strong>Location targets</strong>
+                <span>Use `Remote`, `India`, or combine them with `Remote | India` for one recommendation run.</span>
             </div>
-            <div class="form-group">
-                <label for="include_api">Include API Jobs</label>
-                <select id="include_api" name="include_api">
-                    <option value="1" {% if include_api %}selected{% endif %}>Yes (API + Database)</option>
-                    <option value="0" {% if not include_api %}selected{% endif %}>No (Database only)</option>
-                </select>
+            <div class="page-hero-metric">
+                <strong>Pool size</strong>
+                <span>{% if selected_resume %}Current recommendation pool: {{ recommendation_pool_size|default:0 }} jobs.{% else %}Choose a resume to build the recommendation pool.{% endif %}</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Fresh imports</strong>
+                <span>When API jobs are enabled, new jobs are merged into the catalog before scoring.</span>
             </div>
         </div>
-        <button class="btn" type="submit">Get Recommendations</button>
-    </form>
-</div>
+    </section>
 
-{% if selected_resume %}
-    <h3>Results for {{ selected_resume.display_name }}</h3>
-    {% if include_api %}
-        <p class="muted">
-            API source used: {{ api_source|default:"none" }}.
-            DB jobs before API: {{ db_jobs_before_api|default:0 }}.
-            Added: {{ api_jobs_added|default:0 }}.
-            Updated: {{ api_jobs_updated|default:0 }}.
-            Recommendation pool size: {{ recommendation_pool_size|default:0 }}.
-        </p>
-    {% endif %}
-    <div class="grid">
-        {% for rec in results %}
-            <div class="card">
-                <h4>{{ rec.job.title }}</h4>
-                <p>{{ rec.job.company }} · {{ rec.job.location }}</p>
-                <p><strong>Score:</strong> {{ rec.score }}</p>
-                <p class="muted">{{ rec.reason }}</p>
-                <div class="button-group mt-3">
-                    {% if rec.job.apply_link %}
-                        <a href="{{ rec.job.apply_link }}" target="_blank" class="btn">Apply Now</a>
-                    {% endif %}
-                    <a class="btn secondary" href="{% url 'job_detail' rec.job.id %}">View Job</a>
+    <section class="page-shell two-column">
+        <div class="card page-card">
+            <div class="page-section-head">
+                <div>
+                    <p class="page-kicker">Recommendation Setup</p>
+                    <h2>Choose the ranking inputs</h2>
                 </div>
             </div>
-        {% empty %}
-            <p>No matching jobs found for this resume yet.</p>
-        {% endfor %}
-    </div>
-{% endif %}
+            <form method="get" class="stacked-form mt-3">
+                <p>
+                    <label for="resume_id">Select Resume</label>
+                    <select name="resume_id" id="resume_id">
+                        <option value="">-- Choose --</option>
+                        {% for resume in resumes %}
+                            <option value="{{ resume.id }}" {% if selected_resume and resume.id == selected_resume.id %}selected{% endif %}>
+                                {{ resume.display_name }} ({{ resume.uploaded_at|date:"Y-m-d" }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="api_query">Job Role</label>
+                        <input type="text" id="api_query" name="api_query" value="{{ api_query|default:'software developer' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="api_location">Location</label>
+                        <input list="recommendation-location-list" type="text" id="api_location" name="api_location" value="{{ api_location|default:'Remote | India' }}">
+                        <datalist id="recommendation-location-list">
+                            {% for suggestion in location_suggestions %}
+                                <option value="{{ suggestion }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="api_limit">Limit</label>
+                        <input type="number" id="api_limit" name="api_limit" min="5" max="150" value="{{ api_limit|default:50 }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="include_api">Include API Jobs</label>
+                        <select id="include_api" name="include_api">
+                            <option value="1" {% if include_api %}selected{% endif %}>Yes (API + Database)</option>
+                            <option value="0" {% if not include_api %}selected{% endif %}>No (Database only)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn primary" type="submit">Get Recommendations</button>
+            </form>
+        </div>
+
+        <aside class="card page-card">
+            <p class="page-kicker">Run Notes</p>
+            <h3>What this search will do</h3>
+            <div class="detail-list mt-3">
+                <div class="detail-item"><strong>Role query:</strong> {{ api_query }}</div>
+                <div class="detail-item"><strong>Location:</strong> {{ api_location }}</div>
+                <div class="detail-item"><strong>API jobs:</strong> {% if include_api %}Enabled{% else %}Disabled{% endif %}</div>
+                <div class="detail-item"><strong>Pool size:</strong> {{ recommendation_pool_size|default:0 }}</div>
+            </div>
+        </aside>
+    </section>
+
+    {% if selected_resume %}
+        <section class="card page-card">
+            <div class="page-section-head">
+                <div>
+                    <p class="page-kicker">Results</p>
+                    <h2>Top jobs for {{ selected_resume.display_name }}</h2>
+                </div>
+                {% if include_api %}
+                    <p class="panel-copy muted">Source: {{ api_source|default:"none" }}. Added {{ api_jobs_added|default:0 }}, updated {{ api_jobs_updated|default:0 }}, pool {{ recommendation_pool_size|default:0 }}.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="page-grid">
+            {% for rec in results %}
+                <article class="card page-card">
+                    <p class="page-kicker">Recommended Role</p>
+                    <h3>{{ rec.job.title }}</h3>
+                    <div class="detail-list mt-3">
+                        <div class="detail-item"><strong>Company:</strong> {{ rec.job.company }}</div>
+                        <div class="detail-item"><strong>Location:</strong> {{ rec.job.location }}</div>
+                        <div class="detail-item"><strong>Score:</strong> {{ rec.score }}</div>
+                    </div>
+                    <p class="muted mt-3">{{ rec.reason }}</p>
+                    <div class="button-group mt-4">
+                        {% if rec.job.apply_link %}
+                            <a href="{{ rec.job.apply_link }}" target="_blank" class="btn primary">Apply Now</a>
+                        {% endif %}
+                        <a class="btn secondary" href="{% url 'job_detail' rec.job.id %}">View Job</a>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="page-empty">No matching jobs were found for this resume yet.</div>
+            {% endfor %}
+        </section>
+    {% endif %}
+</div>
 {% endblock %}

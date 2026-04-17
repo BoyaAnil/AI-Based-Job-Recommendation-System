@@ -1,48 +1,93 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="card">
-    <h2>Match Results</h2>
-    <p><strong>Job:</strong> {{ match.job.title }} at {{ match.job.company }}</p>
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Match Results</p>
+            <h1 class="page-title">{{ match.job.title }}</h1>
+            <p class="page-subtitle">Review the ATS breakdown, matched skills, and improvement actions for {{ match.job.company }}.</p>
+            <div class="page-hero-tags">
+                {% with details=match.analysis_details %}
+                    <span>ATS {{ details.ats_score|default:match.score }}/100</span>
+                {% endwith %}
+                <span>{{ match.matched_skills|length }} matched skills</span>
+                <span>{{ match.missing_skills|length }} missing skills</span>
+            </div>
+        </div>
+        <div class="page-hero-panel">
+            <div class="page-hero-metric">
+                <strong>Company</strong>
+                <span>{{ match.job.company }}</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Created</strong>
+                <span>{{ match.created_at }}</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-shell two-column">
+        <div class="card page-card">
+            {% with details=match.analysis_details %}
+                <div class="detail-list">
+                    <div class="detail-item"><strong>Matched Skills:</strong> {{ match.matched_skills|join:", "|default:"None" }}</div>
+                    <div class="detail-item"><strong>Missing Skills:</strong> {{ match.missing_skills|join:", "|default:"None" }}</div>
+                    {% if details.matched_keywords %}
+                        <div class="detail-item"><strong>Matched Keywords:</strong> {{ details.matched_keywords|join:", " }}</div>
+                    {% endif %}
+                    {% if details.missing_keywords %}
+                        <div class="detail-item"><strong>Missing Keywords:</strong> {{ details.missing_keywords|join:", " }}</div>
+                    {% endif %}
+                    {% if details.summary %}
+                        <div class="detail-item"><strong>Summary:</strong> {{ details.summary }}</div>
+                    {% endif %}
+                </div>
+            {% endwith %}
+        </div>
+
+        <aside class="card page-card">
+            <div class="button-group">
+                <a class="btn secondary" href="{% url 'job_detail' match.job.id %}">Back to Job</a>
+            </div>
+        </aside>
+    </section>
+
     {% with details=match.analysis_details %}
-    <p><strong>ATS Score:</strong> {{ details.ats_score|default:match.score }}/100</p>
-    <p><strong>Matched Skills:</strong> {{ match.matched_skills|join:", " }}</p>
-    <p><strong>Missing Skills:</strong> {{ match.missing_skills|join:", " }}</p>
-    {% if details.matched_keywords %}
-    <p><strong>Matched Keywords:</strong> {{ details.matched_keywords|join:", " }}</p>
-    {% endif %}
-    {% if details.missing_keywords %}
-    <p><strong>Missing Keywords:</strong> {{ details.missing_keywords|join:", " }}</p>
-    {% endif %}
-    {% if details.summary %}
-    <p>{{ details.summary }}</p>
-    {% endif %}
-    {% if details.score_breakdown %}
-    <p><strong>ATS Breakdown:</strong></p>
-    <ul>
-        {% for section in details.score_breakdown %}
-        <li>{{ section.label }}: {{ section.score }}/100 ({{ section.weighted_score }}/{{ section.weight }})</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-    {% if details.mistakes %}
-    <p><strong>Mistakes Found:</strong></p>
-    <ul>
-        {% for mistake in details.mistakes %}
-        <li>{{ mistake }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-    {% if details.improvement_tips %}
-    <p><strong>Suggestions:</strong></p>
-    <ul>
-        {% for tip in details.improvement_tips %}
-        <li>{{ tip }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
+        <section class="page-grid">
+            {% if details.score_breakdown %}
+                <div class="card page-card">
+                    <h3>ATS Breakdown</h3>
+                    <ul class="insight-list">
+                        {% for section in details.score_breakdown %}
+                            <li>{{ section.label }}: {{ section.score }}/100 ({{ section.weighted_score }}/{{ section.weight }})</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            {% if details.mistakes %}
+                <div class="card page-card">
+                    <h3>Mistakes Found</h3>
+                    <ul class="insight-list">
+                        {% for mistake in details.mistakes %}
+                            <li>{{ mistake }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            {% if details.improvement_tips %}
+                <div class="card page-card">
+                    <h3>Suggestions</h3>
+                    <ul class="insight-list">
+                        {% for tip in details.improvement_tips %}
+                            <li>{{ tip }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </section>
     {% endwith %}
-    <p><strong>Created:</strong> {{ match.created_at }}</p>
-    <a class="btn secondary" href="{% url 'job_detail' match.job.id %}">Back to Job</a>
 </div>
 {% endblock %}

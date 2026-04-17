@@ -5,8 +5,8 @@ cd "C:\Users\boyaa\OneDrive\Documents\AI Resume Analyzer and Job Recommendation\
 REM Activate virtual environment
 call .venv\Scripts\activate.bat
 
-REM Run the job refresh command
-python manage.py refresh_daily_jobs --force --location "India" --limit 50 --query "software developer"
+REM Run the job refresh command for remote foreign jobs plus India-wide jobs.
+python manage.py refresh_daily_jobs --force --location "Remote ^| India" --limit 50 --query "software developer"
 
 REM Log completion
 echo Daily India Job Refresh completed at %DATE% %TIME%

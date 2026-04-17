@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Resume Analyzer</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260417b">
     {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="app-shell {% block body_class %}{% endblock %}">
     <header class="site-header">
         <div class="container nav">
             <a class="logo" href="{% url 'home' %}">AI Resume Analyzer</a>
@@ -41,7 +41,7 @@
         </div>
     </header>
 
-    <main class="container">
+    <main class="container app-main">
         {% if messages %}
             <div class="messages">
                 {% for message in messages %}

@@ -57,7 +57,7 @@ Task registration example:
 $taskName='AI Resume Analyzer Daily Job Refresh'
 $script='C:\path\to\repo\web\scripts\daily_job_refresh.bat'
 $action=New-ScheduledTaskAction -Execute $script
-$trigger=New-ScheduledTaskTrigger -Daily -At 9:00AM
+$trigger=New-ScheduledTaskTrigger -Daily -At 6:00AM
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Description 'Refresh latest real jobs daily for AI Resume Analyzer' -Force
 ```
 

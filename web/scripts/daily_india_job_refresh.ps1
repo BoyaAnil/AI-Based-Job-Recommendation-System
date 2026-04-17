@@ -20,9 +20,9 @@ if (Test-Path $venvPath) {
     exit 1
 }
 
-# Run the job refresh command
+# Run the job refresh command for remote foreign jobs plus India-wide jobs.
 Write-Host "Running job refresh command..." -ForegroundColor Yellow
-python manage.py refresh_daily_jobs --force --location "India" --limit 50 --query "software developer"
+python manage.py refresh_daily_jobs --force --location "Remote | India" --limit 50 --query "software developer"
 
 # Check exit code
 if ($LASTEXITCODE -eq 0) {

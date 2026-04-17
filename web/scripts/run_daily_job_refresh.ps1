@@ -8,9 +8,9 @@ if (-not (Test-Path $PythonExe)) {
     exit 1
 }
 
-# Run the Django management command to refresh jobs
+# Run the Django management command to refresh remote foreign jobs plus India-wide jobs.
 Write-Host "Refreshing daily jobs at $(Get-Date)" -ForegroundColor Green
-& $PythonExe $ManagePy refresh_daily_jobs --force --location "India" --limit 100
+& $PythonExe $ManagePy refresh_daily_jobs --force --location "Remote | India" --limit 100
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Daily job refresh completed successfully!" -ForegroundColor Green

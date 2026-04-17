@@ -1,12 +1,27 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="card narrow">
-    <h2>{{ mode }} Job</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn" type="submit">Save</button>
-    </form>
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Admin Job Form</p>
+            <h1 class="page-title">{{ mode }} job record.</h1>
+            <p class="page-subtitle">Maintain the internal catalog with the same panel layout used across the rest of the product.</p>
+        </div>
+    </section>
+
+    <div class="card page-card narrow">
+        <div class="page-section-head">
+            <div>
+                <p class="page-kicker">Job Editor</p>
+                <h2>{{ mode }} Job</h2>
+            </div>
+        </div>
+        <form method="post" class="stacked-form mt-3">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button class="btn primary" type="submit">Save</button>
+        </form>
+    </div>
 </div>
 {% endblock %}

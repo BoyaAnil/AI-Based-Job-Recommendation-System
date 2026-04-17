@@ -1,13 +1,37 @@
-﻿from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
 import logging
+import math
+from datetime import timedelta
 
+from django.conf import settings
+from django.utils import timezone
+
+from .location_filters import deduplicate_jobs, filter_jobs_by_location_targets, split_location_targets
 from .models import Job, JobRefreshState
 from .services import AIServiceError, fetch_jobs_auto
 
 logger = logging.getLogger(__name__)
 DAILY_REFRESH_STATE_KEY = "daily_jobs_auto_refresh"
+
+
+def fetch_jobs_for_location_targets(*, query, location, limit, require_location_match=True):
+    location_targets = split_location_targets(location) or [""]
+    per_target_limit = max(5, math.ceil(limit / len(location_targets)))
+    collected_jobs = []
+    sources = []
+
+    for target in location_targets:
+        jobs_batch, source = fetch_jobs_auto(
+            query=query,
+            location=target,
+            limit=per_target_limit,
+        )
+        if require_location_match and target:
+            jobs_batch = filter_jobs_by_location_targets(jobs_batch, target)
+        collected_jobs.extend(jobs_batch)
+        if source and source not in sources:
+            sources.append(source)
+
+    return deduplicate_jobs(collected_jobs)[:limit], ", ".join(sources)
 
 
 def merge_jobs_into_database(fetched_jobs, default_location, refresh_time=None):
@@ -78,27 +102,18 @@ def refresh_jobs_daily_if_needed(*, force=False, query=None, location=None, limi
     state.save(update_fields=["last_attempted_at", "updated_at"])
 
     api_query = (query or getattr(settings, "AUTO_DAILY_JOB_QUERY", "software developer") or "software developer").strip()
-    api_location = (location or getattr(settings, "AUTO_DAILY_JOB_LOCATION", "India") or "India").strip()
+    api_location = (location or getattr(settings, "AUTO_DAILY_JOB_LOCATION", "Remote | India") or "Remote | India").strip()
     api_limit = max(5, min(int(limit or getattr(settings, "AUTO_DAILY_JOB_LIMIT", 100)), 150))
     if require_location_match is None:
         require_location_match = getattr(settings, "AUTO_DAILY_JOB_REQUIRE_LOCATION_MATCH", True)
 
     try:
-        fetched_jobs, api_source = fetch_jobs_auto(
+        fetched_jobs, api_source = fetch_jobs_for_location_targets(
             query=api_query,
             location=api_location,
             limit=api_limit,
+            require_location_match=require_location_match,
         )
-
-        if require_location_match:
-            location_key = api_location.lower()
-            filtered_jobs = []
-            for row in fetched_jobs:
-                job_location = (row.get("location", "") or "").lower()
-                # Accept if location matches, or if it's remote, or if no specific location is given
-                if location_key in job_location or "remote" in job_location or job_location in ["", "worldwide"]:
-                    filtered_jobs.append(row)
-            fetched_jobs = filtered_jobs
 
         added, updated = merge_jobs_into_database(fetched_jobs, api_location, refresh_time=now)
         state.last_success_at = timezone.now()

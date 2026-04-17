@@ -1,92 +1,125 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<h2>Resume Details</h2>
-<div class="resume-layout">
-    <div class="resume-left">
-        <div class="card">
-            <p><strong>File:</strong> {{ resume.display_name }}</p>
-            <p><strong>Name:</strong> {{ extracted.name|default:"" }}</p>
-            <p><strong>Email:</strong> {{ extracted.email|default:"" }}</p>
-            <p><strong>Phone:</strong> {{ extracted.phone|default:"" }}</p>
-            <div class="actions">
-                <a class="btn secondary" href="{% url 'resume_json_download' resume.id %}">Download JSON</a>
-                <a class="btn" href="{% url 'job_list' %}?resume_id={{ resume.id }}">Browse Matching Jobs</a>
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Resume Detail</p>
+            <h1 class="page-title">{{ resume.display_name }}</h1>
+            <p class="page-subtitle">Inspect extracted identity fields, parsed skills, ATS feedback, and the raw source text used by matching and recommendations.</p>
+            <div class="page-hero-tags">
+                <span>{{ word_count }} words</span>
+                <span>{{ skill_count }} skills detected</span>
+                <span>JSON export ready</span>
             </div>
         </div>
+        <div class="page-hero-panel">
+            <div class="page-hero-metric">
+                <strong>Name</strong>
+                <span>{{ extracted.name|default:"Not extracted" }}</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Email</strong>
+                <span>{{ extracted.email|default:"Not extracted" }}</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Phone</strong>
+                <span>{{ extracted.phone|default:"Not extracted" }}</span>
+            </div>
+        </div>
+    </section>
 
-        <div class="card">
-            <h3>ATS Score Checker</h3>
-            <p class="muted">Paste a job description to calculate ATS score and mistakes for this resume.</p>
-            <label for="ats-job-title"><strong>Job Title</strong> (optional)</label>
-            <input id="ats-job-title" type="text" placeholder="Example: Python Developer" style="width: 100%; margin: 8px 0 12px; padding: 10px;">
+    <section class="page-shell two-column">
+        <div class="page-stack">
+            <div class="card page-card">
+                <div class="button-group">
+                    <a class="btn secondary" href="{% url 'resume_json_download' resume.id %}">Download JSON</a>
+                    <a class="btn primary" href="{% url 'job_list' %}?resume_id={{ resume.id }}">Browse Matching Jobs</a>
+                </div>
+            </div>
 
-            <label for="ats-job-description"><strong>Job Description</strong> *</label>
-            <textarea id="ats-job-description" rows="8" placeholder="Paste full job description here..." style="width: 100%; margin: 8px 0 12px; padding: 10px;"></textarea>
+            <div class="card page-card">
+                <div class="page-section-head">
+                    <div>
+                        <p class="page-kicker">ATS Checker</p>
+                        <h2>Run a role-specific ATS review</h2>
+                    </div>
+                </div>
+                <div class="stacked-form mt-3">
+                    <p>
+                        <label for="ats-job-title"><strong>Job Title</strong> (optional)</label>
+                        <input id="ats-job-title" type="text" placeholder="Example: Python Developer">
+                    </p>
+                    <p>
+                        <label for="ats-job-description"><strong>Job Description</strong> *</label>
+                        <textarea id="ats-job-description" rows="8" placeholder="Paste full job description here..."></textarea>
+                    </p>
+                    <p>
+                        <label for="ats-required-skills"><strong>Required Skills</strong> (optional, comma-separated)</label>
+                        <input id="ats-required-skills" type="text" placeholder="python, sql, django">
+                    </p>
+                    <button class="btn primary" id="ats-check-btn" type="button">Check ATS Score</button>
+                    <div id="ats-check-result" class="match-result mt-3"></div>
+                </div>
+            </div>
 
-            <label for="ats-required-skills"><strong>Required Skills</strong> (optional, comma-separated)</label>
-            <input id="ats-required-skills" type="text" placeholder="python, sql, django" style="width: 100%; margin: 8px 0 12px; padding: 10px;">
-
-            <button class="btn" id="ats-check-btn">Check ATS Score</button>
-            <div id="ats-check-result" class="match-result" style="margin-top: 12px;"></div>
+            <section class="page-grid">
+                <div class="card page-card">
+                    <h3>Resume Insights</h3>
+                    <div class="detail-list mt-3">
+                        <div class="detail-item"><strong>Word Count:</strong> {{ word_count }}</div>
+                        <div class="detail-item"><strong>Skill Count:</strong> {{ skill_count }}</div>
+                    </div>
+                </div>
+                <div class="card page-card">
+                    <h3>Skills</h3>
+                    <p class="muted">{{ skills|join:", "|default:"No skills extracted." }}</p>
+                </div>
+                <div class="card page-card">
+                    <h3>Education</h3>
+                    {% if education %}
+                        <ul class="insight-list">
+                            {% for item in education %}
+                                <li>{{ item.degree }} {{ item.year }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="page-empty">No education extracted.</div>
+                    {% endif %}
+                </div>
+                <div class="card page-card">
+                    <h3>Experience</h3>
+                    {% if experience %}
+                        <ul class="insight-list">
+                            {% for item in experience %}
+                                <li>{{ item.title }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="page-empty">No experience extracted.</div>
+                    {% endif %}
+                </div>
+                <div class="card page-card">
+                    <h3>Projects</h3>
+                    {% if projects %}
+                        <ul class="insight-list">
+                            {% for item in projects %}
+                                <li>{{ item.name }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="page-empty">No projects extracted.</div>
+                    {% endif %}
+                </div>
+            </section>
         </div>
 
-        <section class="grid">
-            <div class="card">
-                <h3>Resume Insights</h3>
-                <p><strong>Word Count:</strong> {{ word_count }}</p>
-                <p><strong>Skill Count:</strong> {{ skill_count }}</p>
-            </div>
-            <div class="card">
-                <h3>Skills</h3>
-                <p>{{ skills|join:", " }}</p>
-            </div>
-            <div class="card">
-                <h3>Education</h3>
-                {% if education %}
-                    <ul>
-                        {% for item in education %}
-                            <li>{{ item.degree }} {{ item.year }}</li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>No education extracted.</p>
-                {% endif %}
-            </div>
-            <div class="card">
-                <h3>Experience</h3>
-                {% if experience %}
-                    <ul>
-                        {% for item in experience %}
-                            <li>{{ item.title }}</li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>No experience extracted.</p>
-                {% endif %}
-            </div>
-            <div class="card">
-                <h3>Projects</h3>
-                {% if projects %}
-                    <ul>
-                        {% for item in projects %}
-                            <li>{{ item.name }}</li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>No projects extracted.</p>
-                {% endif %}
-            </div>
-        </section>
-    </div>
-
-    <aside class="resume-right">
-        <div class="card">
-            <h3>Raw Text</h3>
+        <aside class="card page-card">
+            <p class="page-kicker">Raw Source</p>
+            <h3>Extracted text</h3>
             <pre class="preformatted">{{ resume.raw_text }}</pre>
-        </div>
-    </aside>
-
+        </aside>
+    </section>
 </div>
 
 <script>

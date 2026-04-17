@@ -101,7 +101,7 @@ AUTO_DAILY_JOB_REFRESH=true
 AUTO_DAILY_JOB_REFRESH_HOURS=24
 AUTO_DAILY_JOB_REFRESH_RETRY_MINUTES=60
 AUTO_DAILY_JOB_QUERY=software developer
-AUTO_DAILY_JOB_LOCATION=India
+AUTO_DAILY_JOB_LOCATION=Remote | India
 AUTO_DAILY_JOB_LIMIT=100
 AUTO_DAILY_JOB_REQUIRE_LOCATION_MATCH=true
 ```
@@ -110,16 +110,23 @@ You can still use the Windows scheduled task below if you want refreshes at an e
 
 The repo includes:
 - `web/scripts/daily_job_refresh.bat`
+- `web/scripts/register_daily_job_refresh_task.ps1`
 
-Run once to create a daily scheduled task at 09:00:
+Run once to create a scheduled task for 6:00 AM daily:
+```powershell
+Set-Location 'C:\Users\boyaa\OneDrive\Documents\AI Resume Analyzer and Job Recommendation\web\scripts'
+.\register_daily_job_refresh_task.ps1
+```
+
+If you prefer manual task creation, use this instead:
 ```powershell
 $taskName='AI Resume Analyzer Daily Job Refresh'
 $script='C:\path\to\repo\web\scripts\daily_job_refresh.bat'
 $action=New-ScheduledTaskAction -Execute $script
-$trigger=New-ScheduledTaskTrigger -Daily -At 9:00AM
+$trigger=New-ScheduledTaskTrigger -Daily -At 6:00AM
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Description 'Refresh latest real jobs daily for AI Resume Analyzer' -Force
 ```
-The default batch script is preconfigured for India (`--location "India"`).
+The default batch script is preconfigured for remote foreign jobs plus India-wide jobs (`--location "Remote | India"`).
 
 ## API Contracts (Django -> Flask)
 

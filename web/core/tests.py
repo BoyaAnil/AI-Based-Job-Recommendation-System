@@ -213,6 +213,76 @@ class CoreViewsTests(TestCase):
         listed_ids = {job.id for job in captured_context["jobs"]}
         self.assertEqual(listed_ids, {matching_job.id})
 
+    def test_job_list_location_filter_matches_india_state_aliases(self):
+        karnataka_job = Job.objects.create(
+            title="Backend Engineer",
+            company="Acme",
+            location="Bengaluru, KA",
+            level="Mid",
+            salary_range="",
+            description="Python role",
+            required_skills=["python", "django"],
+        )
+        Job.objects.create(
+            title="Backend Engineer",
+            company="Elsewhere",
+            location="Austin, TX",
+            level="Mid",
+            salary_range="",
+            description="Python role",
+            required_skills=["python", "django"],
+        )
+
+        request = self.factory.get(reverse("job_list"), {"location": "Karnataka", "show_all": "1"})
+        request.user = self.user
+        captured_context = {}
+
+        def fake_render(_request, _template, context):
+            captured_context.update(context)
+            return HttpResponse("ok")
+
+        with patch("core.views.render", side_effect=fake_render):
+            response = views.job_list(request)
+
+        self.assertEqual(response.status_code, 200)
+        listed_ids = {job.id for job in captured_context["jobs"]}
+        self.assertEqual(listed_ids, {karnataka_job.id})
+
+    def test_job_list_location_filter_matches_remote_foreign_jobs(self):
+        remote_job = Job.objects.create(
+            title="Platform Engineer",
+            company="Remote Co",
+            location="Berlin, Germany (Remote)",
+            level="Mid",
+            salary_range="",
+            description="Remote platform role",
+            required_skills=["python", "docker"],
+        )
+        Job.objects.create(
+            title="Platform Engineer",
+            company="Onsite Co",
+            location="Berlin, Germany",
+            level="Mid",
+            salary_range="",
+            description="Onsite platform role",
+            required_skills=["python", "docker"],
+        )
+
+        request = self.factory.get(reverse("job_list"), {"location": "Remote", "show_all": "1"})
+        request.user = self.user
+        captured_context = {}
+
+        def fake_render(_request, _template, context):
+            captured_context.update(context)
+            return HttpResponse("ok")
+
+        with patch("core.views.render", side_effect=fake_render):
+            response = views.job_list(request)
+
+        self.assertEqual(response.status_code, 200)
+        listed_ids = {job.id for job in captured_context["jobs"]}
+        self.assertEqual(listed_ids, {remote_job.id})
+
     @patch("core.views.recommend_jobs")
     def test_recommendations_persist_only_skill_matches(self, mock_recommend_jobs):
         resume = Resume.objects.create(
@@ -257,6 +327,63 @@ class CoreViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Recommendation.objects.filter(resume=resume).count(), 1)
         self.assertEqual(Recommendation.objects.get(resume=resume).job_id, matching_job.id)
+
+    @patch("core.views.recommend_jobs")
+    @patch("core.views.fetch_jobs_for_location_targets")
+    def test_recommendations_import_remote_and_india_jobs(self, mock_fetch_jobs_for_targets, mock_recommend_jobs):
+        resume = Resume.objects.create(
+            user=self.user,
+            original_file=SimpleUploadedFile("resume.pdf", b"dummy"),
+            raw_text="Python developer",
+            extracted_json={"skills": ["python", "django", "docker"]},
+        )
+        mock_fetch_jobs_for_targets.return_value = ([
+            {
+                "title": "Remote Python Engineer",
+                "company": "Global Remote",
+                "location": "Remote - Germany",
+                "level": "Mid",
+                "salary_range": "",
+                "description": "Remote python role",
+                "required_skills": ["python", "docker"],
+                "apply_link": "https://example.com/remote",
+            },
+            {
+                "title": "India Backend Engineer",
+                "company": "India Tech",
+                "location": "Bengaluru, KA",
+                "level": "Mid",
+                "salary_range": "",
+                "description": "India backend role",
+                "required_skills": ["python", "django"],
+                "apply_link": "https://example.com/india",
+            },
+        ], "remotive, themuse")
+        mock_recommend_jobs.return_value = {"recommendations": []}
+
+        request = self.factory.get(
+            reverse("recommendations"),
+            {"resume_id": resume.id, "include_api": 1, "api_location": "Remote | India"},
+        )
+        request.user = self.user
+        request.session = self.client.session
+        captured_context = {}
+
+        def fake_render(_request, _template, context):
+            captured_context.update(context)
+            return HttpResponse("ok")
+
+        with patch("core.views.messages.info"), patch("core.views.render", side_effect=fake_render):
+            response = views.recommendations(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(captured_context["api_jobs_added"], 2)
+        self.assertEqual(Job.objects.filter(title="Remote Python Engineer").count(), 1)
+        self.assertEqual(Job.objects.filter(title="India Backend Engineer").count(), 1)
+        self.assertEqual(
+            mock_fetch_jobs_for_targets.call_args.kwargs["location"],
+            "Remote | India",
+        )
 
     @override_settings(AI_SERVICE_URL="http://127.0.0.1:5000", AI_SERVICE_FALLBACK_LOCAL=True)
     @patch("core.services.ai_post")
@@ -513,3 +640,52 @@ class CoreViewsTests(TestCase):
         self.assertEqual(result["status"], "skipped")
         self.assertEqual(result["reason"], "refresh window not reached")
         mock_fetch_jobs.assert_not_called()
+
+    @override_settings(
+        AUTO_DAILY_JOB_REFRESH=True,
+        AUTO_DAILY_JOB_QUERY="backend engineer",
+        AUTO_DAILY_JOB_LOCATION="Remote | India",
+        AUTO_DAILY_JOB_LIMIT=10,
+    )
+    @patch("core.job_refresh.fetch_jobs_auto")
+    def test_refresh_jobs_daily_if_needed_imports_remote_and_india_targets(self, mock_fetch_jobs):
+        def fetch_side_effect(*, query, location, limit):
+            if location == "Remote":
+                return ([
+                    {
+                        "title": "Remote Backend Engineer",
+                        "company": "Global Remote",
+                        "location": "Remote - Canada",
+                        "level": "Mid",
+                        "salary_range": "",
+                        "description": "Remote backend role",
+                        "required_skills": ["python", "docker"],
+                        "apply_link": "https://example.com/remote-role",
+                    }
+                ], "remotive")
+            if location == "India":
+                return ([
+                    {
+                        "title": "India Backend Engineer",
+                        "company": "India Tech",
+                        "location": "Pune, Maharashtra",
+                        "level": "Mid",
+                        "salary_range": "",
+                        "description": "India backend role",
+                        "required_skills": ["python", "django"],
+                        "apply_link": "https://example.com/india-role",
+                    }
+                ], "themuse")
+            return ([], "none")
+
+        mock_fetch_jobs.side_effect = fetch_side_effect
+
+        result = refresh_jobs_daily_if_needed(force=True)
+
+        self.assertTrue(result["executed"])
+        self.assertEqual(result["status"], "refreshed")
+        self.assertEqual(result["added"], 2)
+        self.assertTrue(Job.objects.filter(title="Remote Backend Engineer", location="Remote - Canada").exists())
+        self.assertTrue(Job.objects.filter(title="India Backend Engineer", location="Pune, Maharashtra").exists())
+        self.assertIn("remotive", result["source"])
+        self.assertIn("themuse", result["source"])

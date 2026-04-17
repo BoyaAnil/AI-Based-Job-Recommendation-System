@@ -1,13 +1,16 @@
 ﻿import json
 import logging
+import random
 from collections import Counter
 from pathlib import Path
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordChangeView
+from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import PasswordResetDoneView, PasswordResetView
 from django.db.models import Avg, Q
@@ -28,20 +31,20 @@ from .forms import (
     ProfilePhotoForm,
     CustomPasswordChangeForm,
 )
+from .location_filters import LOCATION_SUGGESTIONS, QUICK_LOCATION_FILTERS, build_location_query
 from .models import Resume, Job, MatchResult, Recommendation, SavedJob, UserProfile
 from .services import (
     parse_resume,
     match_resume_job,
     recommend_jobs,
     skill_gap,
-    fetch_jobs_auto,
     detect_fake_job_posting,
     start_interview_simulator,
     advance_interview_simulator,
     INTERVIEW_SIMULATOR_SESSION_KEY,
     AIServiceError,
 )
-from .job_refresh import merge_jobs_into_database, refresh_jobs_daily_if_needed
+from .job_refresh import fetch_jobs_for_location_targets, merge_jobs_into_database, refresh_jobs_daily_if_needed
 
 GENERIC_SKILL_TAGS = {"general", "remote"}
 logger = logging.getLogger(__name__)
@@ -89,6 +92,7 @@ def _refresh_jobs_daily_if_needed():
         logger.exception("Unexpected error during daily jobs refresh: %s", exc)
 
 
+@login_required
 def home(request):
     _refresh_jobs_daily_if_needed()
     return render(request, "home.html")
@@ -139,15 +143,101 @@ class CustomPasswordResetDoneView(PasswordResetDoneView):
 
 
 def register(request):
+    if request.GET.get('reset') == '1':
+        request.session.pop('registration_data', None)
+        request.session.pop('otp', None)
+        return redirect('register')
+
+    session_data = request.session.get('registration_data')
+    otp_sent = bool(session_data)
+    registration_email = session_data.get('email') if session_data else ""
+    registration_username = session_data.get('username') if session_data else ""
+
     if request.method == "POST":
-        form = UserRegistrationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Account created. Please log in.")
-            return redirect("login")
+        if "otp" in request.POST and otp_sent:
+            entered_otp = request.POST.get('otp', '').strip()
+            if entered_otp == request.session.get('otp'):
+                data = request.session.get('registration_data')
+                if data:
+                    User = get_user_model()
+                    user = User.objects.create_user(
+                        username=data['username'],
+                        email=data['email'],
+                        password=data['password1']
+                    )
+                    login(request, user)
+                    request.session.pop('otp', None)
+                    request.session.pop('registration_data', None)
+                    messages.success(request, "Account created and logged in.")
+                    return redirect('home')
+            messages.error(request, "Invalid OTP. Please try again.")
+            form = UserRegistrationForm(initial=session_data)
+        else:
+            form = UserRegistrationForm(request.POST)
+            if form.is_valid():
+                email = form.cleaned_data['email']
+                User = get_user_model()
+                if User.objects.filter(email__iexact=email).exists():
+                    messages.info(request, "This email is already registered. Please log in.")
+                    return redirect('login')
+
+                otp = str(random.randint(100000, 999999))
+                print("Sending OTP to", email, "OTP:", otp)  # Debug print
+                send_mail(
+                    'Your OTP for registration',
+                    f'Your OTP is {otp}',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [email],
+                    fail_silently=False,
+                )
+                request.session['otp'] = otp
+                request.session['registration_data'] = form.cleaned_data
+                otp_sent = True
+                registration_email = form.cleaned_data['email']
+                registration_username = form.cleaned_data['username']
+                messages.success(request, "OTP sent to your email. Enter it to complete registration.")
+                form = UserRegistrationForm(initial={
+                    'username': form.cleaned_data['username'],
+                    'email': form.cleaned_data['email'],
+                })
     else:
-        form = UserRegistrationForm()
-    return render(request, "registration/register.html", {"form": form})
+        form = UserRegistrationForm(initial=session_data) if session_data else UserRegistrationForm()
+
+    return render(
+        request,
+        "registration/register.html",
+        {
+            "form": form,
+            "otp_sent": otp_sent,
+            "registration_email": registration_email,
+            "registration_username": registration_username,
+        },
+    )
+
+
+def otp_verify(request):
+    if not request.session.get('registration_data'):
+        messages.info(request, "Start registration first to receive an OTP.")
+        return redirect('register')
+
+    if request.method == "POST":
+        entered_otp = request.POST.get('otp')
+        if entered_otp == request.session.get('otp'):
+            data = request.session.get('registration_data')
+            if data:
+                User = get_user_model()
+                user = User.objects.create_user(
+                    username=data['username'],
+                    email=data['email'],
+                    password=data['password1']
+                )
+                login(request, user)
+                request.session.pop('otp', None)
+                request.session.pop('registration_data', None)
+                messages.success(request, "Account created and logged in.")
+                return redirect('home')
+        messages.error(request, "Invalid OTP. Please try again.")
+    return render(request, 'registration/otp_verify.html')
 
 
 @login_required
@@ -351,33 +441,7 @@ def job_list(request):
     if query:
         jobs = jobs.filter(Q(title__icontains=query) | Q(company__icontains=query))
     if location:
-        # Normalize and handle common city aliases (e.g., Bengaluru/Bangalore)
-        loc_normal = location.strip().lower()
-        city_aliases = {
-            "bengaluru": ["bengaluru", "bangalore"],
-            "hyderabad": ["hyderabad"],
-            "chennai": ["chennai", "madras"],
-            "mumbai": ["mumbai", "bombay"],
-            "delhi": ["delhi", "new delhi"],
-            "pune": ["pune"],
-            "bangalore": ["bangalore", "bengaluru"],
-        }
-
-        # If user typed a known alias, expand to all variants; otherwise use raw input
-        aliases = None
-        for key, vals in city_aliases.items():
-            if loc_normal in vals:
-                aliases = vals
-                break
-
-        if aliases is None:
-            # fallback: search by provided substring
-            jobs = jobs.filter(location__icontains=location)
-        else:
-            q_obj = Q()
-            for a in aliases:
-                q_obj |= Q(location__icontains=a)
-            jobs = jobs.filter(q_obj)
+        jobs = jobs.filter(build_location_query(location))
     if level:
         jobs = jobs.filter(level__icontains=level)
 
@@ -408,6 +472,8 @@ def job_list(request):
         "match_filter_active": match_filter_active,
         "show_all": show_all,
         "matching_jobs_count": len(jobs) if match_filter_active else None,
+        "location_suggestions": LOCATION_SUGGESTIONS,
+        "quick_location_filters": QUICK_LOCATION_FILTERS,
     })
 
 
@@ -666,7 +732,7 @@ def recommendations(request):
     resumes = Resume.objects.filter(user=request.user).order_by("-uploaded_at")
     resume_id = request.GET.get("resume_id")
     api_query = (request.GET.get("api_query") or "software developer").strip() or "software developer"
-    api_location = (request.GET.get("api_location") or "India").strip() or "India"
+    api_location = (request.GET.get("api_location") or "Remote | India").strip() or "Remote | India"
     include_api = (request.GET.get("include_api") or "1") == "1"
     try:
         api_limit = int(request.GET.get("api_limit", 50))
@@ -688,17 +754,12 @@ def recommendations(request):
 
         if include_api:
             try:
-                fetched_jobs, api_source = fetch_jobs_auto(
+                fetched_jobs, api_source = fetch_jobs_for_location_targets(
                     query=api_query,
                     location=api_location,
                     limit=api_limit,
+                    require_location_match=True,
                 )
-
-                location_key = api_location.lower()
-                fetched_jobs = [
-                    row for row in fetched_jobs
-                    if location_key in (row.get("location", "") or "").lower()
-                ]
 
                 api_jobs_added, api_jobs_updated = _merge_jobs_into_database(fetched_jobs, api_location)
 
@@ -733,6 +794,7 @@ def recommendations(request):
                 "api_jobs_updated": api_jobs_updated,
                 "db_jobs_before_api": db_jobs_before_api,
                 "recommendation_pool_size": recommendation_pool_size,
+                "location_suggestions": LOCATION_SUGGESTIONS,
             })
 
         try:
@@ -776,6 +838,7 @@ def recommendations(request):
         "api_jobs_updated": api_jobs_updated,
         "db_jobs_before_api": db_jobs_before_api,
         "recommendation_pool_size": recommendation_pool_size,
+        "location_suggestions": LOCATION_SUGGESTIONS,
     })
 
 

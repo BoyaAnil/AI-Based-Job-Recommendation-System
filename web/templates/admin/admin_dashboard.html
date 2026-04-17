@@ -1,51 +1,73 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
-<h2>Admin Dashboard</h2>
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Admin Dashboard</p>
+            <h1 class="page-title">Monitor platform usage and job activity.</h1>
+            <p class="page-subtitle">Track resume volume, saved jobs, recommendation behavior, and the job roles that appear most often across the system.</p>
+        </div>
+        <div class="page-hero-panel">
+            <div class="page-hero-metric">
+                <strong>Total resumes</strong>
+                <span>{{ total_resumes }}</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Saved jobs</strong>
+                <span>{{ saved_jobs_count }}</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Average match score</strong>
+                <span>{{ avg_score }}</span>
+            </div>
+        </div>
+    </section>
 
-<div class="grid">
-    <div class="card">
-        <h3>Total Resumes</h3>
-        <p class="metric">{{ total_resumes }}</p>
-    </div>
-    <div class="card">
-        <h3>Saved Jobs</h3>
-        <p class="metric">{{ saved_jobs_count }}</p>
-    </div>
-    <div class="card">
-        <h3>Average Match Score</h3>
-        <p class="metric">{{ avg_score }}</p>
-    </div>
-</div>
+    <section class="page-grid compact">
+        <div class="stat-card">
+            <h4>{{ total_resumes }}</h4>
+            <p>Total Resumes</p>
+        </div>
+        <div class="stat-card">
+            <h4>{{ saved_jobs_count }}</h4>
+            <p>Saved Jobs</p>
+        </div>
+        <div class="stat-card">
+            <h4>{{ avg_score }}</h4>
+            <p>Average Match Score</p>
+        </div>
+    </section>
 
-<div class="grid">
-    <div class="card">
-        <h3>Top Skills</h3>
-        {% if top_skills %}
-            <ul>
-                {% for skill, count in top_skills %}
-                    <li>{{ skill }} ({{ count }})</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No data yet.</p>
-        {% endif %}
-    </div>
-    <div class="card">
-        <h3>Top Recommended Jobs</h3>
-        {% if top_jobs %}
-            <ul>
-                {% for item in top_jobs %}
-                    <li>{{ item.job.title }} ({{ item.count }})</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No data yet.</p>
-        {% endif %}
-    </div>
-</div>
+    <section class="page-grid">
+        <div class="card page-card">
+            <h3>Top Skills</h3>
+            {% if top_skills %}
+                <ul class="insight-list">
+                    {% for skill, count in top_skills %}
+                        <li>{{ skill }} ({{ count }})</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="page-empty">No data yet.</div>
+            {% endif %}
+        </div>
+        <div class="card page-card">
+            <h3>Top Recommended Jobs</h3>
+            {% if top_jobs %}
+                <ul class="insight-list">
+                    {% for item in top_jobs %}
+                        <li>{{ item.job.title }} ({{ item.count }})</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="page-empty">No data yet.</div>
+            {% endif %}
+        </div>
+    </section>
 
-<div class="card">
-    <a class="btn" href="{% url 'admin_job_list' %}">Manage Jobs</a>
+    <div class="card page-card">
+        <a class="btn primary" href="{% url 'admin_job_list' %}">Manage Jobs</a>
+    </div>
 </div>
 {% endblock %}

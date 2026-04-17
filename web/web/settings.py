@@ -165,7 +165,7 @@ if _email_backend_env:
 elif _smtp_credentials_configured:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 else:
-    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # Changed to console for debugging
 DEFAULT_FROM_EMAIL = os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "noreply@localhost")
 EMAIL_FILE_PATH = os.getenv("DJANGO_EMAIL_FILE_PATH", str(BASE_DIR / "sent_emails"))
 if EMAIL_BACKEND == "django.core.mail.backends.filebased.EmailBackend":
@@ -180,7 +180,7 @@ AUTO_DAILY_JOB_REFRESH = _env_bool("AUTO_DAILY_JOB_REFRESH", True)
 AUTO_DAILY_JOB_REFRESH_HOURS = int(os.getenv("AUTO_DAILY_JOB_REFRESH_HOURS", "24"))
 AUTO_DAILY_JOB_REFRESH_RETRY_MINUTES = int(os.getenv("AUTO_DAILY_JOB_REFRESH_RETRY_MINUTES", "60"))
 AUTO_DAILY_JOB_QUERY = os.getenv("AUTO_DAILY_JOB_QUERY", "software developer")
-AUTO_DAILY_JOB_LOCATION = os.getenv("AUTO_DAILY_JOB_LOCATION", "India")
+AUTO_DAILY_JOB_LOCATION = os.getenv("AUTO_DAILY_JOB_LOCATION", "Remote | India")
 AUTO_DAILY_JOB_LIMIT = int(os.getenv("AUTO_DAILY_JOB_LIMIT", "100"))
 AUTO_DAILY_JOB_REQUIRE_LOCATION_MATCH = _env_bool("AUTO_DAILY_JOB_REQUIRE_LOCATION_MATCH", True)
 

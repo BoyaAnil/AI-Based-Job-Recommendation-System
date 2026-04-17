@@ -1,108 +1,164 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+.job-results-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.85rem;
+}
+
+.job-results-grid > * {
+    min-width: 0;
+}
+
+@media (min-width: 1500px) {
+    .job-results-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1080px) {
+    .job-results-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<h2>Job Listings</h2>
-{% if match_filter_active and selected_resume %}
-    <p class="muted">
-        Showing {{ matching_jobs_count }} matching job{{ matching_jobs_count|pluralize }} for {{ selected_resume.display_name }}.
-        <a href="{% url 'job_list' %}?resume_id={{ selected_resume.id }}&show_all=1">Show all jobs</a>
-    </p>
-{% elif show_all %}
-    <p class="muted">
-        Showing all jobs.
-        {% if selected_resume %}
-            <a href="{% url 'job_list' %}?resume_id={{ selected_resume.id }}">Show matching jobs</a>
-        {% endif %}
-    </p>
-{% endif %}
-<div class="card">
-    <form method="get" class="filter-form" id="filter-form">
-        {% if selected_resume and not show_all %}
-            <input type="hidden" name="resume_id" value="{{ selected_resume.id }}">
-        {% endif %}
-        {% if show_all %}
-            <input type="hidden" name="show_all" value="1">
-        {% endif %}
-        <input type="text" name="q" placeholder="Search title or company" value="{{ query }}">
-        <input list="city-list" id="location-input" name="location" placeholder="Location" value="{{ location }}">
-        <datalist id="city-list">
-            <option value="Bengaluru">
-            <option value="Hyderabad">
-            <option value="Chennai">
-            <option value="Mumbai">
-            <option value="Delhi">
-            <option value="Pune">
-            <option value="Bangalore">
-            <option value="New Delhi">
-        </datalist>
-        <input type="text" name="level" placeholder="Level" value="{{ level }}">
-        <button class="btn" type="submit">Filter</button>
-    </form>
-</div>
-
-<!-- Quick city filters -->
-<div class="card mt-2">
-    <strong>Quick filters:</strong>
-    <div class="button-group mt-2">
-        <a class="btn quick-city" href="#" data-city="Bengaluru">Bengaluru</a>
-        <a class="btn quick-city" href="#" data-city="Hyderabad">Hyderabad</a>
-        <a class="btn quick-city" href="#" data-city="Chennai">Chennai</a>
-        <a class="btn quick-city" href="#" data-city="Mumbai">Mumbai</a>
-        <a class="btn quick-city" href="#" data-city="Delhi">Delhi</a>
-        <a class="btn quick-city" href="#" data-city="Pune">Pune</a>
-    </div>
-</div>
-
-<div class="grid">
-    {% for job in jobs %}
-        <div class="card">
-            <h3>{{ job.title }}</h3>
-            <p>{{ job.company }} · {{ job.location }}</p>
-            <p class="muted">{{ job.level }}</p>
-            <div class="button-group mt-3">
-                {% if job.apply_link %}
-                    <a href="{{ job.apply_link }}" target="_blank" class="btn">Apply Now</a>
+<div class="page-stack">
+    <section class="page-hero">
+        <div class="page-hero-copy">
+            <p class="page-kicker">Job Discovery</p>
+            <h1 class="page-title">Search remote foreign roles and India-wide openings in one view.</h1>
+            <p class="page-subtitle">Filter by role, location, and seniority. Use `Remote` for work-from-home jobs abroad, `India` for all Indian states, or combine them with `Remote | India`.</p>
+            <div class="page-hero-tags">
+                <span>{{ jobs|length }} jobs in current view</span>
+                {% if selected_resume and not show_all %}
+                    <span>Resume match filter active</span>
+                {% elif show_all %}
+                    <span>Showing full catalog</span>
                 {% endif %}
-                <a class="btn secondary" href="{% url 'job_detail' job.id %}">View Job</a>
+                <span>Quick location presets</span>
             </div>
         </div>
-    {% empty %}
-        {% if match_filter_active %}
-            <p>No matching jobs found for your resume.</p>
-        {% else %}
-            <p>No jobs found.</p>
-        {% endif %}
-    {% endfor %}
+        <div class="page-hero-panel">
+            {% if match_filter_active and selected_resume %}
+                <div class="page-hero-metric">
+                    <strong>Resume-driven view</strong>
+                    <span>Showing {{ matching_jobs_count }} matching job{{ matching_jobs_count|pluralize }} for {{ selected_resume.display_name }}. <a href="{% url 'job_list' %}?resume_id={{ selected_resume.id }}&show_all=1">Show all jobs</a>.</span>
+                </div>
+            {% elif show_all %}
+                <div class="page-hero-metric">
+                    <strong>Catalog view</strong>
+                    <span>Showing all jobs. {% if selected_resume %}<a href="{% url 'job_list' %}?resume_id={{ selected_resume.id }}">Switch back to matching jobs</a>.{% endif %}</span>
+                </div>
+            {% endif %}
+            <div class="page-hero-metric">
+                <strong>Location syntax</strong>
+                <span>Examples: `Remote`, `India`, `Karnataka`, `Delhi NCR`, or `Remote | India`.</span>
+            </div>
+            <div class="page-hero-metric">
+                <strong>Recommended flow</strong>
+                <span>Start with your resume match filter on, then widen to all jobs when you want broader exploration.</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-shell two-column">
+        <div class="card page-card">
+            <div class="page-section-head">
+                <div>
+                    <p class="page-kicker">Filters</p>
+                    <h2>Refine the job feed</h2>
+                </div>
+                <p class="panel-copy muted">Search by title or company, narrow location targets, and keep or remove the resume match filter.</p>
+            </div>
+            <form method="get" class="filter-form mt-3" id="filter-form">
+                {% if selected_resume and not show_all %}
+                    <input type="hidden" name="resume_id" value="{{ selected_resume.id }}">
+                {% endif %}
+                {% if show_all %}
+                    <input type="hidden" name="show_all" value="1">
+                {% endif %}
+                <input type="text" name="q" placeholder="Search title or company" value="{{ query }}">
+                <input list="location-list" id="location-input" name="location" placeholder="Remote, India, state, or use | for both" value="{{ location }}">
+                <datalist id="location-list">
+                    {% for suggestion in location_suggestions %}
+                        <option value="{{ suggestion }}">
+                    {% endfor %}
+                </datalist>
+                <input type="text" name="level" placeholder="Level" value="{{ level }}">
+                <button class="btn primary" type="submit">Apply Filters</button>
+            </form>
+        </div>
+
+        <aside class="card page-card">
+            <p class="page-kicker">Quick Filters</p>
+            <h3>Jump to common searches</h3>
+            <p class="muted">These presets map to the same location logic used in recommendations and background refresh.</p>
+            <div class="button-group mt-3">
+                {% for quick_filter in quick_location_filters %}
+                    <a class="btn secondary quick-location" href="#" data-location="{{ quick_filter }}">{{ quick_filter }}</a>
+                {% endfor %}
+            </div>
+        </aside>
+    </section>
+
+    <section class="page-grid job-results-grid">
+        {% for job in jobs %}
+            <article class="card page-card">
+                <p class="page-kicker">Open Role</p>
+                <h3>{{ job.title }}</h3>
+                <div class="detail-list mt-3">
+                    <div class="detail-item"><strong>Company:</strong> {{ job.company }}</div>
+                    <div class="detail-item"><strong>Location:</strong> {{ job.location }}</div>
+                    <div class="detail-item"><strong>Level:</strong> {{ job.level }}</div>
+                </div>
+                <div class="button-group mt-4">
+                    {% if job.apply_link %}
+                        <a href="{{ job.apply_link }}" target="_blank" class="btn primary">Apply Now</a>
+                    {% endif %}
+                    <a class="btn secondary" href="{% url 'job_detail' job.id %}">View Job</a>
+                </div>
+            </article>
+        {% empty %}
+            <div class="page-empty">
+                {% if match_filter_active %}
+                    No matching jobs were found for the selected resume.
+                {% else %}
+                    No jobs match the current filters.
+                {% endif %}
+            </div>
+        {% endfor %}
+    </section>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Persist preferred city in localStorage and wire quick filter buttons
 (function(){
     const locInput = document.getElementById('location-input');
     const form = document.getElementById('filter-form');
-    const saved = localStorage.getItem('preferred_city');
+    const saved = localStorage.getItem('preferred_location') || localStorage.getItem('preferred_city');
     if (saved && locInput && !locInput.value) {
         locInput.value = saved;
     }
 
-    // when form is submitted, store the chosen city
     if (form) {
         form.addEventListener('submit', () => {
             const v = locInput ? locInput.value.trim() : '';
-            if (v) localStorage.setItem('preferred_city', v);
+            if (v) localStorage.setItem('preferred_location', v);
         });
     }
 
-    // quick city buttons
-    document.querySelectorAll('.quick-city').forEach(btn => {
+    document.querySelectorAll('.quick-location').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            const city = btn.dataset.city;
-            if (locInput) locInput.value = city;
-            localStorage.setItem('preferred_city', city);
-            // submit form to apply filter
+            const location = btn.dataset.location;
+            if (locInput) locInput.value = location;
+            localStorage.setItem('preferred_location', location);
             form && form.submit();
         });
     });
