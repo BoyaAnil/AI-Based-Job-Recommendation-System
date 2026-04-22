@@ -1,6 +1,6 @@
 # Project Documentation
 
-This folder contains project documentation for the AI Resume Analyzer and Job Recommendation system.
+This folder contains project documentation for the AI Job Recommendation system.
 
 ## Read This First
 

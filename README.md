@@ -15,13 +15,27 @@ Full-stack monorepo with Django web app and Flask AI microservice.
 - `sample_data/` seed jobs + sample resume
 
 ## Features
-- User registration/login and profile
-- Upload PDF/DOCX resumes and view extracted data
-- Job list/search, job detail, and match scoring
-- Recommended jobs for a selected resume
-- Save jobs to a personal list
-- Admin job CRUD and analytics dashboard
-- Offline-friendly NLP (TF-IDF + regex-based skill extraction)
+- User registration, login, OTP verification, password reset, and profile management
+- Resume upload for PDF and DOCX files with extracted text, skills, education, projects, and experience
+- ATS-style resume scoring with matched skills, missing skills, keyword coverage, and improvement tips
+- Job browsing, detail pages, saved jobs, and resume-to-job match scoring
+- Personalized job recommendations based on resume content and extracted skills
+- Skill-gap analysis for specific jobs with targeted upskilling suggestions
+- Fake job detection with risk signals, trust checks, and warning breakdowns
+- Interview simulator with adaptive pressure prompts, scoring, and coaching feedback
+- Admin dashboard with job management, analytics, and top-skills insights
+- Daily job refresh workflow with external job sources and location filtering
+- Offline-friendly NLP using TF-IDF-style similarity, regex extraction, and local fallback logic
+
+## Skills And Technologies
+- Backend: Python, Django 6, Flask 3
+- Frontend: Django templates, HTML, CSS, JavaScript
+- Database: SQLite for local development, optional PostgreSQL and MySQL support
+- AI and NLP: TF-IDF-style similarity scoring, regex-based entity extraction, ATS-style scoring pipeline
+- File processing: `pdfplumber`, `python-docx`, `Pillow`
+- Integrations: `requests`, optional Google Gemini support, JSearch, The Muse, and Remotive job feeds
+- DevOps: Docker, Docker Compose, `.env`-based configuration
+- Testing: Django test suite and `pytest` for the AI service
 
 ## Prerequisites
 - Python **3.12+** (required by Django 6.x)
