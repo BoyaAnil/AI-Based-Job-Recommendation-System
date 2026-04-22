@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Resume Analyzer</title>
+    <title>AI Job Recommendation</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260417b">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="app-shell {% block body_class %}{% endblock %}">
     <header class="site-header">
         <div class="container nav">
-            <a class="logo" href="{% url 'home' %}">AI Resume Analyzer</a>
+            <a class="logo" href="{% url 'home' %}">AI Job Recommendation</a>
             <nav class="site-nav">
                 <a class="nav-link{% if request.resolver_match.url_name == 'job_list' %} is-active{% endif %}" href="{% url 'job_list' %}">Jobs</a>
                 <a class="nav-link{% if request.resolver_match.url_name == 'fake_job_detector' %} is-active{% endif %}" href="{% url 'fake_job_detector' %}">Fake Job Check</a>
@@ -55,7 +55,7 @@
 
     <footer class="site-footer">
         <div class="container">
-            <p>AI-Powered Resume Analyzer & Job Recommendation System</p>
+            <p>AI Job Recommendation</p>
         </div>
     </footer>
     <script>

@@ -51,7 +51,7 @@ class Command(BaseCommand):
             if result.get('executed'):
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"✓ Refresh successful!\n"
+                        f"Refresh successful.\n"
                         f"  Source: {result.get('source')}\n"
                         f"  Query: {result.get('query')}\n"
                         f"  Location: {result.get('location')}\n"
@@ -63,7 +63,7 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(
                     self.style.WARNING(
-                        f"⊘ Refresh skipped\n"
+                        f"Refresh skipped.\n"
                         f"  Reason: {result.get('reason')}\n"
                         f"  Status: {result.get('status')}"
                     )
@@ -71,6 +71,6 @@ class Command(BaseCommand):
 
         except Exception as exc:
             self.stdout.write(
-                self.style.ERROR(f"✗ Refresh failed: {exc}")
+                self.style.ERROR(f"Refresh failed: {exc}")
             )
             raise
